@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
+	"time"
+
+	"slices"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -37,8 +40,9 @@ type Room struct {
 	Leader       *Player
 	ActivePlayer *Player
 	RoomId       string
-	QuitChan     chan struct{}
 	Messages     []Message
+	QuitChannel  chan struct{}
+	StartRound   chan struct{}
 }
 
 // Adds Player to the room
@@ -61,7 +65,6 @@ func (r *Room) AddPlayer(playerName string, conn *websocket.Conn) {
 	r.mu.Unlock()
 	r.sendPlayerListUpdate()
 	r.sendLeader()
-	r.sendActivePlayer()
 	r.mu.Lock()
 	gameState := r.IsGameOn
 	r.mu.Unlock()
@@ -147,8 +150,6 @@ func (r *Room) PlayerListener(player *Player) {
 			r.ActivePlayer = nil
 		} else if r.Leader.Id == player.Id {
 			r.Leader = updatePlayerList[0]
-			r.ActivePlayer = r.Leader
-			r.sendActivePlayer()
 		}
 		r.Players = updatePlayerList
 		r.mu.Unlock()
@@ -227,6 +228,7 @@ func (r *Room) sendLeader() {
 
 // Send the new Active player
 func (r *Room) sendActivePlayer() {
+	fmt.Println("Sending active Player", r.ActivePlayer.Id)
 	buffer := make([]byte, 2)
 	buffer[0] = byte(ACTIVEPLAYERCHANGE)
 	var activePlayerId int
@@ -314,6 +316,7 @@ func (r *Room) broadcastGameUpdate(payload []byte) {
 		}
 		r.mu.Unlock()
 		go r.Start()
+		r.StartRound <- struct{}{}
 	}
 }
 
@@ -344,14 +347,40 @@ func (r *Room) AddMesssage(p []byte) {
 
 // Main game logic
 func (r *Room) Start() {
-	r.mu.Lock()
-	r.ActivePlayer = r.Players[0]
-	r.mu.Unlock()
-	r.SendNotification("ACTIVE PLAYER", r.ActivePlayer.Name, nil)
-	r.sendActivePlayer()
-	return
-	// for range r.QuitChan {
-	// }
+	for {
+		select {
+		case <-r.QuitChannel:
+			return
+
+		case <-r.StartRound:
+			r.BeginGame()
+		}
+	}
+}
+
+//Round Logic
+
+func (r *Room) BeginGame() {
+	for i := 0; i <= 2; i++ {
+		r.mu.Lock()
+		snapShot := make([]*Player, len(r.Players))
+		copy(snapShot, r.Players)
+		r.mu.Unlock()
+		for _, player := range snapShot {
+			r.mu.Lock()
+			if !slices.Contains(r.Players, player) {
+				r.mu.Unlock()
+				continue
+			}
+			r.ActivePlayer = player
+			r.mu.Unlock()
+			r.sendActivePlayer()
+			r.SendNotification("ACTIVE PLAYER", r.ActivePlayer.Name, nil)
+			timer := time.After(3 * time.Second)
+			<-timer
+		}
+	}
+	r.QuitChannel <- struct{}{}
 }
 func (r *Room) SendNotification(heading string, content string, skipPlayer *Player) {
 	notification := struct {
@@ -383,7 +412,8 @@ func CreateRoom() *Room {
 		ActivePlayer: nil,
 		RoomId:       uuid.NewString(),
 		Messages:     make([]Message, 0, 20),
-		QuitChan:     make(chan struct{}),
+		QuitChannel:  make(chan struct{}),
+		StartRound:   make(chan struct{}),
 	}
 	return room
 }
