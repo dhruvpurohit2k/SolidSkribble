@@ -6,11 +6,13 @@ import { useNavigate, useParams } from "@solidjs/router";
 import { UserContext, useUserContext } from "../context/UserContext";
 import {
   recieveNotification,
+  recieveWords,
   updatePlayers,
 } from "../utils/websocketMessageHandlers";
 import { WebSocketMessageType } from "../utils/websocketMessageType";
 import { Message, Player } from "../utils/types";
 import { Notification } from "../utils/types";
+import { sleep } from "../utils/sleep";
 function Game() {
   const params = useParams();
   const navigate = useNavigate();
@@ -32,16 +34,28 @@ function Game() {
   const [notification, setNotification] = createSignal<Notification | null>(
     null,
   );
+  const [notificationQueue, setNotificationQueue] = createSignal<
+    Notification[]
+  >([]);
+  const [wordOptions, setWordOptions] = createSignal<string[]>([]);
   const decoder = new TextDecoder("utf-8");
 
   createEffect(
     on(
-      notification,
-      () => {
+      notificationQueue,
+      async () => {
+        if (showNotificaiton()) return;
         setShowNotification(true);
-        setTimeout(() => {
-          setShowNotification(false);
-        }, 3000);
+        let noti: Notification;
+        let count = 0;
+        while (notificationQueue().length > 0) {
+          noti = notificationQueue()[0];
+          setNotification(noti);
+          await sleep(4000);
+          setNotificationQueue((prevQueue) => prevQueue.slice(1));
+          count++;
+        }
+        setShowNotification(false);
       },
       { defer: true },
     ),
@@ -111,7 +125,10 @@ function Game() {
           console.log("ActivePlayer set  TO ", newActivePlayerId);
           break;
         case WebSocketMessageType.NOTIFICATION:
-          recieveNotification(payload, setNotification);
+          recieveNotification(payload, setNotificationQueue);
+          break;
+        case WebSocketMessageType.WORDSELECTION:
+          recieveWords(payload, setWordOptions);
           break;
         default:
           alert("NOT IMPLEMENTED PAYLOADTYPE " + payloadType);
@@ -144,10 +161,14 @@ function Game() {
       <Show when={showNotificaiton()}>
         <div
           id="notification"
-          class="absolute bg-bg-dark border border-highlight p-10 text-text right-10 top-20 max-w-[80%] animate-[notification-animation_500ms_ease-in-out]"
+          class="z-10 flex flex-col absolute bg-bg-dark/10 backdrop-blur-3xl text-text right-[50%] top-[50%] -translate-y-[50%] h-dvh w-dvw translate-x-[50%] animate-[notification-animation_4s_ease-in-out]"
         >
-          <p class="text-text text-xl">{notification()?.heading}</p>
-          <p class="text-text text-2xl">{notification()?.content}</p>
+          <div class="mx-auto my-auto bg-bg-dark/80 w-full *:text-center p-10">
+            {/*<p class="text-text text-xl">TEST NOTI</p>
+            <p class="text-text text-2xl">TEST NOTI</p>*/}
+            <p class="text-text text-xl">{notification()?.heading}</p>
+            <p class="text-2xl text-yellow-500">{notification()?.content}</p>
+          </div>
         </div>
       </Show>
       <Show
@@ -168,6 +189,7 @@ function Game() {
             messages={messages}
             widthSignal={widthSignal}
             activePlayerId={activePlayerId}
+            wordOptions={wordOptions}
           />
         }
       </Show>

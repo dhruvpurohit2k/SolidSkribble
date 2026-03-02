@@ -11,6 +11,7 @@ import (
 type SolidSkribbleServer struct {
 	mux   *http.ServeMux
 	rooms map[string]*Room
+	words []string
 	mu    sync.RWMutex
 }
 
@@ -29,9 +30,10 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin:     func(r *http.Request) bool { return true },
 }
 
-func createServer() *SolidSkribbleServer {
+func createServer(words []string) *SolidSkribbleServer {
 	rooms := make(map[string]*Room, 10)
 	server := &SolidSkribbleServer{}
+	server.words = words
 	server.rooms = rooms
 	server.mux = &http.ServeMux{}
 	server.mu = sync.RWMutex{}
@@ -41,7 +43,7 @@ func createServer() *SolidSkribbleServer {
 
 func (s *SolidSkribbleServer) createRoom(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
-	newRoom := CreateRoom()
+	newRoom := CreateRoom(s.words)
 	s.rooms[newRoom.RoomId] = newRoom
 	s.mu.Unlock()
 	w.Header().Set("Content-Type", "application/json")

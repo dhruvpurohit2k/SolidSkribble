@@ -1,6 +1,7 @@
 import { Accessor, createSignal, For, Show } from "solid-js";
 import { useUserContext } from "../context/UserContext";
 import { Player } from "../utils/types";
+import { WebSocketMessageType } from "../utils/websocketMessageType";
 function Lobby({ playerList, conn, leaderId }: GameDataProps) {
   const [roundTime, setRoundTime] = createSignal<number>(60);
   const userContext = useUserContext();
@@ -80,8 +81,13 @@ function Lobby({ playerList, conn, leaderId }: GameDataProps) {
           <button
             class="font-bold text-xl bg-bg-light hover:bg-bg-dark duration-150 mt-5 p-2 rounded mx-auto"
             onClick={() => {
-              const buffer = new ArrayBuffer(2);
-              const view = new DataView(buffer);
+              let buffer = new ArrayBuffer(2);
+              let view = new DataView(buffer);
+              view.setUint8(0, WebSocketMessageType.ROUNDTIMESELECTION);
+              view.setUint8(1, roundTime());
+              conn()?.send(buffer);
+              buffer = new ArrayBuffer(2);
+              view = new DataView(buffer);
               view.setUint8(0, 0);
               view.setUint8(1, 1);
               conn()?.send(buffer);

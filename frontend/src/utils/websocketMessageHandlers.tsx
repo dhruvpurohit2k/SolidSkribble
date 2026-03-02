@@ -84,12 +84,12 @@ export function recieveCanvasInput(
 }
 export function recieveNotification(
   payload: ArrayBuffer,
-  notificationSetter: Setter<Notification | null>,
+  notificationQueueSetter: Setter<Notification[]>,
 ) {
   const notification = JSON.parse(
     decoder.decode(payload.slice(1)),
   ) as Notification;
-  notificationSetter(notification);
+  notificationQueueSetter((oldNoti) => [...oldNoti, notification]);
 }
 export function recieveColor(
   color: string,
@@ -107,5 +107,13 @@ export function recieveStrokeWidth(
 ) {
   canvas.currentWidth = width;
   changeCurrentWidth(width);
+}
+export function recieveWords(
+  payload: ArrayBuffer,
+  setWordOptions: Setter<string[]>,
+) {
+  const jsonString = decoder.decode(payload);
+  const { words } = JSON.parse(jsonString) as { words: string[] };
+  setWordOptions(words);
 }
 export function payloadHandler(data: any) {}

@@ -4,10 +4,10 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"math/rand/v2"
+	"slices"
 	"sync"
 	"time"
-
-	"slices"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -29,20 +29,26 @@ const (
 	CANVASSTATE
 	MESSAGEINPUT
 	NOTIFICATION
+	WORDSELECTION
+	ROUNDTIMESELECTION
 )
 
 type Room struct {
-	mu           sync.Mutex
-	IsGameOn     bool
-	idCounter    int
-	Players      []*Player
-	Canvas       Canvas
-	Leader       *Player
-	ActivePlayer *Player
-	RoomId       string
-	Messages     []Message
-	QuitChannel  chan struct{}
-	StartRound   chan struct{}
+	mu               sync.Mutex
+	IsGameOn         bool
+	idCounter        int
+	Players          []*Player
+	Canvas           Canvas
+	Leader           *Player
+	ActivePlayer     *Player
+	RoomId           string
+	Messages         []Message
+	QuitChannel      chan struct{}
+	StartRound       chan struct{}
+	CurrentWord      string
+	words            []string
+	wordSelectedChan chan struct{}
+	RoundTime        uint8
 }
 
 // Adds Player to the room
@@ -201,11 +207,21 @@ func (r *Room) PlayerListener(player *Player) {
 			go r.broadcastChange(p, player)
 			r.ChangeCurrentStrokeWidth(p)
 
+		case ROUNDTIMESELECTION:
+			if r.Leader != player {
+				continue
+			}
+			r.ChangeRoundTime(p)
+
 		default:
 			fmt.Println("METHOD NOT IMPLEMENTED", opCode)
 		}
 
 	}
+}
+
+func (r *Room) ChangeRoundTime(p []byte) {
+	r.RoundTime = uint8(p[1])
 }
 
 // Send the new Leader to other players
@@ -228,7 +244,6 @@ func (r *Room) sendLeader() {
 
 // Send the new Active player
 func (r *Room) sendActivePlayer() {
-	fmt.Println("Sending active Player", r.ActivePlayer.Id)
 	buffer := make([]byte, 2)
 	buffer[0] = byte(ACTIVEPLAYERCHANGE)
 	var activePlayerId int
@@ -378,9 +393,38 @@ func (r *Room) BeginGame() {
 			r.SendNotification("ACTIVE PLAYER", r.ActivePlayer.Name, nil)
 			timer := time.After(3 * time.Second)
 			<-timer
+			r.SendNotification("", fmt.Sprintf("%s is choosing Word", r.ActivePlayer.Name), r.ActivePlayer)
+			timer = time.After(5 * time.Second)
+			<-timer
+			r.AwaitWordSelection()
+
 		}
 	}
 	r.QuitChannel <- struct{}{}
+}
+
+func (r *Room) AwaitWordSelection() {
+	words := make(map[string]struct{}, 3)
+	for len(words) < 3 {
+		index := rand.IntN(len(r.words))
+		_, ok := words[r.words[index]]
+		if !ok {
+			words[r.words[index]] = struct{}{}
+		}
+	}
+	data := struct {
+		Words []string `json:"words"`
+	}{Words: make([]string, 0, 3)}
+	for k, _ := range words {
+		data.Words = append(data.Words, k)
+	}
+	payload, _ := json.Marshal(data)
+	buffer := make([]byte, len(payload)+1)
+	buffer[0] = byte(WORDSELECTION)
+	copy(buffer[1:], payload)
+	r.mu.Lock()
+	r.ActivePlayer.WriteBuffer <- buffer
+	r.mu.Unlock()
 }
 func (r *Room) SendNotification(heading string, content string, skipPlayer *Player) {
 	notification := struct {
@@ -402,18 +446,21 @@ func (r *Room) SendNotification(heading string, content string, skipPlayer *Play
 	}
 	r.mu.Unlock()
 }
-func CreateRoom() *Room {
+func CreateRoom(words []string) *Room {
 	room := &Room{
-		mu:           sync.Mutex{},
-		idCounter:    0,
-		Players:      make([]*Player, 0, 3),
-		Canvas:       Canvas{Strokes: make([]Stroke, 0, 20), CurrentColor: "#000000", CurrentWidth: 1},
-		Leader:       nil,
-		ActivePlayer: nil,
-		RoomId:       uuid.NewString(),
-		Messages:     make([]Message, 0, 20),
-		QuitChannel:  make(chan struct{}),
-		StartRound:   make(chan struct{}),
+		mu:               sync.Mutex{},
+		idCounter:        0,
+		Players:          make([]*Player, 0, 3),
+		Canvas:           Canvas{Strokes: make([]Stroke, 0, 20), CurrentColor: "#000000", CurrentWidth: 1},
+		Leader:           nil,
+		ActivePlayer:     nil,
+		RoomId:           uuid.NewString(),
+		Messages:         make([]Message, 0, 20),
+		QuitChannel:      make(chan struct{}),
+		StartRound:       make(chan struct{}),
+		CurrentWord:      "",
+		words:            words,
+		wordSelectedChan: make(chan struct{}),
 	}
 	return room
 }

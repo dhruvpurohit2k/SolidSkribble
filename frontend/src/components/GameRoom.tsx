@@ -22,11 +22,13 @@ import ChatBox from "./ChatBoxt";
 import ToolBox from "./ToolBox";
 import { Canvas, Message, MouseEventType, Stroke } from "../utils/types";
 import { useUserContext } from "../context/UserContext";
+import { sleep } from "../utils/sleep";
 
 function GameRoom({
   canvasStateData,
   canvasInputData,
   widthSignal,
+  wordOptions,
   playerList,
   colorSignal,
   connection,
@@ -37,6 +39,7 @@ function GameRoom({
 }: GameRoomProps) {
   const strokes: Stroke[] = [];
   const [currentColor, setCurrentColor] = createSignal<string>("#000000");
+  const [timerWidth, setTimerWidth] = createSignal<number>(100);
   const [currentWidth, setCurrentWidth] = createSignal<number>(2);
   const encoder = new TextEncoder();
   let rect: DOMRect;
@@ -52,7 +55,7 @@ function GameRoom({
   let ctx: CanvasRenderingContext2D | null = null;
   let scaleFactorX: number;
   let scaleFactorY: number;
-
+  const [wordSelection, setWordSelection] = createSignal<boolean>(false);
   createEffect(() => {
     if (canvasInputData() === null) return;
     canvasInputData();
@@ -68,6 +71,18 @@ function GameRoom({
       setCurrentWidth,
     );
   });
+
+  createEffect(
+    on(
+      wordOptions,
+      async () => {
+        setWordSelection(true);
+        await sleep(15000);
+        setWordSelection(false);
+      },
+      { defer: true },
+    ),
+  );
 
   createEffect(
     on(
@@ -256,11 +271,29 @@ function GameRoom({
           )}
         </For>
       </div>
-      <div class="col-start-1 flex flex-col gap-2 ">
+      <div class="relative col-start-1 flex flex-col gap-2 ">
+        <Show when={wordSelection()} fallback={<></>}>
+          <div class="absolute flex flex-col gap-10 top-[50%] right-[50%] py-5 translate-x-[50%] -translate-y-[50%] w-full bg-bg-dark/90 backdrop-blur-lg ">
+            <div
+              class="absolute bg-yellow-500 top-0 h-1"
+              style={{ width: `${timerWidth()}%` }}
+            ></div>
+            <p class="text-text text-center text-3xl">Choose</p>
+            <div class="flex items-center justify-center gap-20">
+              <For each={wordOptions()}>
+                {(word) => (
+                  <p class="text-text px-10 py-5 bg-bg-light/50 hover:bg-bg-dark rounded duration-150">
+                    {word}
+                  </p>
+                )}
+              </For>
+            </div>
+          </div>
+        </Show>
         <canvas
           ref={canvasRef}
           class={[
-            "bg-white w-full rounded cursor-default border-bg-dark ",
+            "bg-white w-full rounded cursor-default border-bg-dark border ",
             useUserContext()?.id.value() !== activePlayerId()
               ? "pointer-events-none"
               : "",
@@ -307,4 +340,5 @@ type GameRoomProps = {
   widthSignal: Accessor<number>;
   addMessage: (message: string) => void;
   activePlayerId: Accessor<number>;
+  wordOptions: Accessor<string[]>;
 };
