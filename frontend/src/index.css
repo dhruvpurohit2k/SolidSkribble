@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+:root {
+    --bg-dark: var(--color-neutral-900);
+    --bg: var(--color-neutral-800);
+    --bg-light: var(--color-neutral-700);
+    --bg-highlight: var(--color-neutral-600);
+    --text: var(--color-neutral-100);
+    --text-muted: var(--color-neutral-200);
+}
+
+:root.light {
+    --bg-dark: var(--color-neutral-300);
+    --bg: var(--color-neutral-200);
+    --bg-light: var(--color-neutral-100);
+    --bg-highlight: var(--color-neutral-300);
+    --text: var(--color-neutral-800);
+    --text-muted: var(--color-neutral-600);
+}
+
+@theme {
+    --color-bg-dark: var(--bg-dark);
+    --color-bg: var(--bg);
+    --color-bg-light: var(--bg-light);
+    --color-text: var(--text);
+    --color-text-muted: var(--text-muted);
+    --color-highlight: var(--bg-highlight);
+}
+
+/* ----------------------------- */
+#root {
+    height: 100%;
+    width: 100%;
+}
+
+html,
+body {
+    height: 100%;
+    width: 100%;
+    background-color: var(--color-bg-dark);
+}
+
+@keyframes notification-animation {
+    0% {
+        opacity: 0;
+        transform: translateY(-200px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0px);
+    }
+}

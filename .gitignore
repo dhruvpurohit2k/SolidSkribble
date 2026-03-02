@@ -1,0 +1,10 @@
+# FRONT END
+/frontend/dist
+/frontend/node_modules
+/frontend/npm-debug.log*
+
+
+# BACK END
+
+/backend/bin
+/backend/out
