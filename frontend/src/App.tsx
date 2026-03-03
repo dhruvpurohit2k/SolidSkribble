@@ -6,7 +6,7 @@ const App: Component = (props: ParentProps) => {
   return (
     <>
       <Header />
-      <main class="mx-auto flex flex-col h-[calc(100%-40px)]">
+      <main class="bg-teal-700 mx-auto flex flex-col h-[calc(100%-40px)]">
         {props.children}
       </main>
     </>

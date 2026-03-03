@@ -27,6 +27,7 @@ import { sleep } from "../utils/sleep";
 function GameRoom({
   canvasStateData,
   canvasInputData,
+  acceptWord,
   widthSignal,
   wordOptions,
   playerList,
@@ -36,11 +37,13 @@ function GameRoom({
   messages,
   activePlayerId,
   addMessage,
+  selectedWord,
 }: GameRoomProps) {
   const strokes: Stroke[] = [];
   const [currentColor, setCurrentColor] = createSignal<string>("#000000");
   const [timerWidth, setTimerWidth] = createSignal<number>(100);
   const [currentWidth, setCurrentWidth] = createSignal<number>(2);
+  const [wordIndex, setWordIndex] = createSignal<number>(-1);
   const encoder = new TextEncoder();
   let rect: DOMRect;
   let isDrawing = false;
@@ -77,8 +80,16 @@ function GameRoom({
       wordOptions,
       async () => {
         setWordSelection(true);
-        await sleep(15000);
-        setWordSelection(false);
+        const interval = setInterval(() => {
+          setTimerWidth((width) => width - 1);
+        }, 150);
+        setTimeout(() => {
+          setWordSelection(false);
+          acceptWord(wordIndex());
+          setWordIndex(-1);
+          clearInterval(interval);
+          setTimerWidth(100);
+        }, 15000);
       },
       { defer: true },
     ),
@@ -281,14 +292,25 @@ function GameRoom({
             <p class="text-text text-center text-3xl">Choose</p>
             <div class="flex items-center justify-center gap-20">
               <For each={wordOptions()}>
-                {(word) => (
-                  <p class="text-text px-10 py-5 bg-bg-light/50 hover:bg-bg-dark rounded duration-150">
+                {(word, index) => (
+                  <button
+                    class={[
+                      "text-text px-10 py-5 bg-bg-light/50 hover:bg-bg-dark rounded duration-150",
+                      index() == wordIndex() ? "border border-yellow-500" : "",
+                    ].join(" ")}
+                    onClick={(e) => setWordIndex(index)}
+                  >
                     {word}
-                  </p>
+                  </button>
                 )}
               </For>
             </div>
           </div>
+        </Show>
+        <Show when={useUserContext()?.id.value() == activePlayerId()}>
+          <p class="text-text text-2xl text-center font-bold">
+            {selectedWord()}
+          </p>
         </Show>
         <canvas
           ref={canvasRef}
@@ -341,4 +363,6 @@ type GameRoomProps = {
   addMessage: (message: string) => void;
   activePlayerId: Accessor<number>;
   wordOptions: Accessor<string[]>;
+  selectedWord: Accessor<string>;
+  acceptWord: (index: number) => void;
 };

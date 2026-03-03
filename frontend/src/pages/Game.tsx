@@ -1,4 +1,4 @@
-import { createEffect, createSignal, on, Setter, Show } from "solid-js";
+import { createEffect, createSignal, For, on, Setter, Show } from "solid-js";
 import GameRoom from "../components/GameRoom";
 import Lobby from "../components/Lobby";
 import { onMount } from "solid-js";
@@ -34,10 +34,12 @@ function Game() {
   const [notification, setNotification] = createSignal<Notification | null>(
     null,
   );
+  const [showScoreBoard, setShowBoard] = createSignal<boolean>(false);
   const [notificationQueue, setNotificationQueue] = createSignal<
     Notification[]
   >([]);
   const [wordOptions, setWordOptions] = createSignal<string[]>([]);
+  const [selectedWord, setSelectWord] = createSignal<string>("");
   const decoder = new TextDecoder("utf-8");
 
   createEffect(
@@ -156,6 +158,14 @@ function Game() {
     view.set(encodedString, 1);
     connection()?.send(buffer);
   }
+  function acceptWord(index: number) {
+    setSelectWord(wordOptions()[index]);
+    const buffer = new ArrayBuffer(2);
+    const view = new DataView(buffer);
+    view.setUint8(0, WebSocketMessageType.WORDSELECTION);
+    view.setUint8(1, index);
+    connection()!.send(buffer);
+  }
   return (
     <>
       <Show when={showNotificaiton()}>
@@ -164,10 +174,23 @@ function Game() {
           class="z-10 flex flex-col absolute bg-bg-dark/10 backdrop-blur-3xl text-text right-[50%] top-[50%] -translate-y-[50%] h-dvh w-dvw translate-x-[50%] animate-[notification-animation_4s_ease-in-out]"
         >
           <div class="mx-auto my-auto bg-bg-dark/80 w-full *:text-center p-10">
-            {/*<p class="text-text text-xl">TEST NOTI</p>
-            <p class="text-text text-2xl">TEST NOTI</p>*/}
             <p class="text-text text-xl">{notification()?.heading}</p>
             <p class="text-2xl text-yellow-500">{notification()?.content}</p>
+          </div>
+        </div>
+      </Show>
+      <Show when={showScoreBoard()}>
+        <div class="flex flex-col gap-5 items-center absolute p-10 w-full bg-bg-dark/10 backdrop-blur-3xl text-text right-[50%] top-[50%] -translate-y-[50%] translate-x-[50%]">
+          <p class="text-text text-5xl">SCORE</p>
+          <div>
+            <For each={players()}>
+              {(player) => (
+                <div class="*:text-3xl flex gap-1">
+                  <p>{player.name} : </p>
+                  <p class="text-green-700"> + {player.points}</p>
+                </div>
+              )}
+            </For>
           </div>
         </div>
       </Show>
@@ -190,6 +213,8 @@ function Game() {
             widthSignal={widthSignal}
             activePlayerId={activePlayerId}
             wordOptions={wordOptions}
+            selectedWord={selectedWord}
+            acceptWord={acceptWord}
           />
         }
       </Show>

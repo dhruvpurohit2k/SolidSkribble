@@ -47,8 +47,9 @@ type Room struct {
 	StartRound       chan struct{}
 	CurrentWord      string
 	words            []string
-	wordSelectedChan chan struct{}
+	wordSelectedChan chan uint8
 	RoundTime        uint8
+	AllPlayerGussed  chan struct{}
 }
 
 // Adds Player to the room
@@ -212,6 +213,12 @@ func (r *Room) PlayerListener(player *Player) {
 				continue
 			}
 			r.ChangeRoundTime(p)
+
+		case WORDSELECTION:
+			if r.ActivePlayer != player {
+				continue
+			}
+			r.wordSelectedChan <- p[1]
 
 		default:
 			fmt.Println("METHOD NOT IMPLEMENTED", opCode)
@@ -394,13 +401,22 @@ func (r *Room) BeginGame() {
 			timer := time.After(3 * time.Second)
 			<-timer
 			r.SendNotification("", fmt.Sprintf("%s is choosing Word", r.ActivePlayer.Name), r.ActivePlayer)
-			timer = time.After(5 * time.Second)
-			<-timer
 			r.AwaitWordSelection()
+			timer = time.After(time.Duration(r.RoundTime) * time.Second)
+			select {
+			case <-timer:
+				r.ShowScore()
+			case <-r.AllPlayerGussed:
+				r.ShowScore()
+			}
 
 		}
 	}
 	r.QuitChannel <- struct{}{}
+}
+
+func (r *Room) ShowScore() {
+
 }
 
 func (r *Room) AwaitWordSelection() {
@@ -425,6 +441,9 @@ func (r *Room) AwaitWordSelection() {
 	r.mu.Lock()
 	r.ActivePlayer.WriteBuffer <- buffer
 	r.mu.Unlock()
+	selectedWordIndex := <-r.wordSelectedChan
+	r.CurrentWord = data.Words[selectedWordIndex]
+	fmt.Println("Selected Word is ", r.CurrentWord)
 }
 func (r *Room) SendNotification(heading string, content string, skipPlayer *Player) {
 	notification := struct {
@@ -460,7 +479,8 @@ func CreateRoom(words []string) *Room {
 		StartRound:       make(chan struct{}),
 		CurrentWord:      "",
 		words:            words,
-		wordSelectedChan: make(chan struct{}),
+		wordSelectedChan: make(chan uint8),
+		AllPlayerGussed:  make(chan struct{}),
 	}
 	return room
 }
