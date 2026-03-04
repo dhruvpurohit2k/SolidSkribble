@@ -6,11 +6,12 @@ function ToolBox(props: ToolBoxProps) {
       <input
         type="color"
         value={props.currentColor()}
+        class="h-10"
         onChange={(e) => {
           props.colorSetter(e.target.value);
         }}
       />
-      <div class="flex flex-col items-center">
+      <div class="flex gap-10 items-center">
         <input
           type="range"
           min="1"
@@ -23,7 +24,7 @@ function ToolBox(props: ToolBoxProps) {
         <p>{props.currentWidth()}</p>
       </div>
       <button
-        class="bg-bg border border-highlight hover:bg-bg-light duration-150 ml-auto px-2 py-1 text-lg rounded"
+        class="duration-150 ml-auto px-2 py-1 text-3xl text-red-500 font-laquer text-shadow-[2px_2px_0px_#000]"
         onClick={() => props.undoHandler()}
       >
         UNDO

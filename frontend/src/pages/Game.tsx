@@ -13,6 +13,9 @@ import { WebSocketMessageType } from "../utils/websocketMessageType";
 import { Message, Player } from "../utils/types";
 import { Notification } from "../utils/types";
 import { sleep } from "../utils/sleep";
+import { onCleanup } from "solid-js";
+import ScoreBoard from "../components/ScoreBoard";
+import NotificationComponenet from "../components/Notification";
 function Game() {
   const params = useParams();
   const navigate = useNavigate();
@@ -164,35 +167,22 @@ function Game() {
     const view = new DataView(buffer);
     view.setUint8(0, WebSocketMessageType.WORDSELECTION);
     view.setUint8(1, index);
+    console.log(index);
     connection()!.send(buffer);
   }
   return (
-    <>
+    <div class="overflow-x-hidden h-full flex flex-col">
       <Show when={showNotificaiton()}>
-        <div
-          id="notification"
-          class="z-10 flex flex-col absolute bg-bg-dark/10 backdrop-blur-3xl text-text right-[50%] top-[50%] -translate-y-[50%] h-dvh w-dvw translate-x-[50%] animate-[notification-animation_4s_ease-in-out]"
-        >
-          <div class="mx-auto my-auto bg-bg-dark/80 w-full *:text-center p-10">
-            <p class="text-text text-xl">{notification()?.heading}</p>
-            <p class="text-2xl text-yellow-500">{notification()?.content}</p>
-          </div>
-        </div>
+        <NotificationComponenet
+          passedClass="z-100 flex flex-col absolute bg-blue-600 right-[50%] top-[50%] -translate-y-[50%] w-[80%] shadow-[10px_10px_0px_#000] after:border-10 p-10 rounded-xl after:rounded-xl  after:border-white after:content-[' '] after:h-full after:w-full after:absolute after:top-0 after:left-0 after:scale-95 translate-x-[50%] animate-[notification-animation_4s_ease-in-out]"
+          notification={notification}
+        />
       </Show>
       <Show when={showScoreBoard()}>
-        <div class="flex flex-col gap-5 items-center absolute p-10 w-full bg-bg-dark/10 backdrop-blur-3xl text-text right-[50%] top-[50%] -translate-y-[50%] translate-x-[50%]">
-          <p class="text-text text-5xl">SCORE</p>
-          <div>
-            <For each={players()}>
-              {(player) => (
-                <div class="*:text-3xl flex gap-1">
-                  <p>{player.name} : </p>
-                  <p class="text-green-700"> + {player.points}</p>
-                </div>
-              )}
-            </For>
-          </div>
-        </div>
+        <ScoreBoard
+          passedClass="flex flex-col gap-5 items-center absolute p-10 bg-yellow-500 right-[50%] top-[50%] -translate-y-[50%] translate-x-[50%] z-100 shadow-[20px_20px_0px_#000] after:border-30 p-20 rounded-xl after:rounded-xl  after:border-teal-500 after:content-[' '] after:h-full after:w-full after:absolute after:top-0 after:left-0 after:scale-100 animate-[roll-in_500ms_ease-in-out]"
+          players={players}
+        />
       </Show>
       <Show
         when={gameStarted()}
@@ -218,7 +208,7 @@ function Game() {
           />
         }
       </Show>
-    </>
+    </div>
   );
 }
 

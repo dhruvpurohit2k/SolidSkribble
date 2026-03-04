@@ -442,7 +442,8 @@ func (r *Room) AwaitWordSelection() {
 	r.ActivePlayer.WriteBuffer <- buffer
 	r.mu.Unlock()
 	selectedWordIndex := <-r.wordSelectedChan
-	r.CurrentWord = data.Words[selectedWordIndex]
+	fmt.Println(selectedWordIndex)
+	r.CurrentWord = data.Words[int(selectedWordIndex)]
 	fmt.Println("Selected Word is ", r.CurrentWord)
 }
 func (r *Room) SendNotification(heading string, content string, skipPlayer *Player) {

@@ -6,15 +6,18 @@ function Lobby({ playerList, conn, leaderId }: GameDataProps) {
   const [roundTime, setRoundTime] = createSignal<number>(60);
   const userContext = useUserContext();
   return (
-    <div class="my-auto mx-auto relative gap-10 bg-yellow-500  p-10 rounded *:text-text-muted flex flex-col lg:flex-row w-[clamp(240px,50%,1000px)] shadow-[50px_40px_0px_10px_#000] after:content-[' '] after:h-full after:w-full after:scale-95 after:border-2 after:border-yellow-700 after:absolute after:top-0 after:left-0 after:rounded *:z-10">
+    <div class="my-auto mx-auto relative gap-10 bg-yellow-500  p-10 rounded *:text-text-muted flex flex-col lg:flex-row w-[clamp(240px,50%,1000px)] shadow-[50px_40px_0px_10px_#000] after:content-[' '] after:h-full after:w-full after:scale-95 after:border-2 after:border-yellow-700 after:absolute after:top-0 after:left-0 after:rounded *:z-10 animate-[right-slide-in_1s_ease-in-out] duration-150ms">
       <div class="flex flex-col max-h-100 ">
         <p class="text-center font-bold text-3xl mb-10 font-mono">
           PLAYERS IN THE LOBBY
         </p>
-        <div class="flex flex-col items-center px-5 p-2 bg-red-700 corner-scoop rounded-[20px]">
+        <div class="flex flex-col items-center px-5 p-2 gap-2 corner-scoop rounded-[20px]">
           <For each={playerList()} fallback={<></>}>
-            {(player) => (
-              <div class="flex p-2 items-center justify-between w-full not-last:border-b border-b-yellow-100">
+            {(player, i) => (
+              <div
+                class="flex px-10 py-2 items-center justify-between w-full bg-red-700 corner-scoop rounded-xl shadow-[10px_10px_0px_#000] animate-[right-slide-in_1s_cubic-bezier(0.175,0.885,0.32,1.075)_both]"
+                style={{ "animation-delay": `${i() + 1}s` }}
+              >
                 <p class="text-xl font-marker text-yellow-100 font-bold">
                   {player.name}
                 </p>
@@ -83,7 +86,7 @@ function Lobby({ playerList, conn, leaderId }: GameDataProps) {
             </div>
           </div>
           <button
-            class="font-bold bg-orange-500 text-orange-100 hover:bg-orange-700 text-xl duration-150 p-2 rounded mx-auto"
+            class="shadow-[10px_10px_0px_#000] hover:scale-95 hover:shadow-none font-bold bg-orange-500 text-orange-100 hover:bg-orange-700 text-xl duration-150 p-2 rounded mx-auto"
             onClick={() => {
               let buffer = new ArrayBuffer(2);
               let view = new DataView(buffer);

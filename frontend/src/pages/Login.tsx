@@ -35,11 +35,11 @@ function Login() {
       <Show
         when={username() !== "" && submitted()}
         fallback={
-          <div class="flex flex-col justify-center gap-10 lg:gap-20 h-full">
-            <p class="text-9xl text-shadow-[10px_10px_1px_#000] text-center text-yellow-300 font-bold font-marker">
+          <div class="flex flex-col justify-center gap-10 lg:gap-20 h-full ">
+            <p class="text-9xl animate-[wind-in_1s_ease-in-out] text-shadow-[10px_10px_1px_#000] text-center text-yellow-300 font-bold font-marker">
               Welcome to SolidScribble
             </p>
-            <div class="*:z-10 corner-scoop rounded-[50px] shadow-[50px_40px_2px_5px_#000] relative bg-red-600 p-20 after:content-[' '] after:border-5 after:border-yellow-500 after:h-full after:w-full after:absolute after:top-0 after:left-0 after:scale-90 after:corner-scoop after:rounded-[50px] mx-auto p-10 lg:w-[70ch] shadow flex flex-col gap-5 ">
+            <div class="*:z-10 [animation-delay:2s] corner-scoop rounded-[50px] animate-[popup_500ms_ease-in-out_both] shadow-[50px_40px_2px_5px_#000] relative bg-red-600 p-20 after:content-[' '] after:border-5 after:border-yellow-500 after:h-full after:w-full after:absolute after:top-0 after:left-0 after:scale-90 after:corner-scoop after:rounded-[50px] mx-auto p-10 lg:w-[70ch] shadow flex flex-col gap-5 ">
               <p class="text-yellow-300 font-bold text-center text-4xl mb-2 font-mono">
                 Enter Username
               </p>
@@ -67,15 +67,15 @@ function Login() {
           </div>
         }
       >
-        <div class="bg-yellow-400 shadow-[50px_40px_0px_10px_#000] relative mx-auto my-auto flex py-10 px-20 rounded w-[50%] flex-col gap-5 after:content-[' '] after:h-full after:w-full after:absolute after:border-3 after:border-yellow-200 after:top-0 after:left-0 after:scale-95 *:z-10">
+        <div class="animate-[roll-in_1s_ease-in-out_both] bg-yellow-400 shadow-[50px_40px_0px_10px_#000] relative mx-auto my-auto flex py-10 px-20 rounded w-[50%] flex-col gap-5 after:content-[' '] after:h-full after:w-full after:absolute after:border-3 after:border-yellow-200 after:top-0 after:left-0 after:scale-95 *:z-10">
           <div class="flex flex-col gap-1">
             <p class="text-black font-bold text-2xl font-mono">WELCOME</p>
-            <p class="text-red-800 text-7xl  font-bold font-marker">
+            <p class="animate-[roll-in_1s_ease-in-out_both] [animation-delay:1s] bg-red-600 text-yellow-500 text-7xl text-center self-start py-2 px-5 font-bold font-marker shadow-[5px_5px_0px_#000] after:absolute relative after:scale-95 after:h-full after:w-full after:content-[' '] after:border-2 after:border-yellow-500 after:top-0 after:left-0 corner-scoop after:corner-scoop rounded-xl after:rounded-xl">
               {username()}
             </p>
           </div>
           <button
-            class="absolute rounded-tr top-10 right-10 font-mono font-bold text-xs text-red-600 p-1 hover:bg-bg-dark hover:text-text duration-150 cursor-pointer"
+            class="absolute hover:animate-pulse hover:scale-150 rounded-tr top-10 right-10 font-mono font-bold text-xs text-red-600 p-1 hover:bg-bg-dark hover:text-text duration-150 cursor-pointer"
             onClick={() => {
               setUserName("");
               setSubmitted(false);
@@ -89,7 +89,7 @@ function Login() {
                 Create New Room
               </p>
               <button
-                class="lg:row-start-3 bg-orange-400 text-white font-bold font-mono text-3xl rounded mx-auto p-2 hover:bg-bg-dark duration-150 cursor-pointer hover:bg-orange-800"
+                class="shadow-[10px_10px_0px_#000] hover:shadow-none hover:scale-95 lg:row-start-3 bg-orange-400 text-white font-bold font-mono text-3xl rounded mx-auto p-2 hover:bg-bg-dark duration-150 cursor-pointer hover:bg-orange-800"
                 onClick={() => createNewRoom()}
               >
                 CREATE
@@ -99,9 +99,9 @@ function Login() {
               <p class="text-3xl text-center font-bold font-mono ">Join Room</p>
               <input
                 type="text"
-                class="bg-yellow-200 rounded w-full outline-none text-lg px-2 py-1"
+                class="bg-yellow-200 text-center rounded w-full outline-none text-lg px-2 py-1"
               />
-              <button class="lg:row-start-3 bg-orange-400 text-white font-bold font-mono text-3xl rounded mx-auto p-2 hover:bg-bg-dark duration-150 cursor-pointer hover:bg-orange-800">
+              <button class="shadow-[10px_10px_0px_#000] hover:shadow-none hover:scale-95 lg:row-start-3 bg-orange-400 text-white font-bold font-mono text-3xl rounded mx-auto p-2 hover:bg-bg-dark duration-150 cursor-pointer hover:bg-orange-800">
                 JOIN
               </button>
             </div>

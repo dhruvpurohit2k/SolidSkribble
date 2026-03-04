@@ -18,11 +18,12 @@ import {
   recieveStrokeWidth,
   setCanvasState,
 } from "../utils/websocketMessageHandlers";
-import ChatBox from "./ChatBoxt";
+import ChatBox from "./ChatBox";
 import ToolBox from "./ToolBox";
 import { Canvas, Message, MouseEventType, Stroke } from "../utils/types";
 import { useUserContext } from "../context/UserContext";
 import { sleep } from "../utils/sleep";
+import WordSelection from "./WordSelection";
 
 function GameRoom({
   canvasStateData,
@@ -43,7 +44,7 @@ function GameRoom({
   const [currentColor, setCurrentColor] = createSignal<string>("#000000");
   const [timerWidth, setTimerWidth] = createSignal<number>(100);
   const [currentWidth, setCurrentWidth] = createSignal<number>(2);
-  const [wordIndex, setWordIndex] = createSignal<number>(-1);
+  const [wordIndex, setWordIndex] = createSignal<number>(0);
   const encoder = new TextEncoder();
   let rect: DOMRect;
   let isDrawing = false;
@@ -86,7 +87,7 @@ function GameRoom({
         setTimeout(() => {
           setWordSelection(false);
           acceptWord(wordIndex());
-          setWordIndex(-1);
+          setWordIndex(0);
           clearInterval(interval);
           setTimerWidth(100);
         }, 15000);
@@ -264,17 +265,20 @@ function GameRoom({
   }
 
   return (
-    <div class="mx-auto items-start grid p-5 grid-rows-[1fr_4fr_4fr] lg:grid-rows-[1fr_12fr] grid-cols-1 lg:grid-cols-[10fr_3fr] gap-2 h-full">
-      <div class="bg-bg font-bold border p-1 flex items-start lg:col-span-2 rounded shadow border-bg-light text-text-muted gap-1">
+    <div class="mx-auto items-start grid p-2 grid-rows-[1fr_4fr_4fr] lg:grid-rows-[1fr_12fr] grid-cols-1 lg:grid-cols-[10fr_3fr] gap-2 h-full">
+      <div class="bg-yellow-500 font-bold border p-1 flex items-start lg:col-span-2 rounded border-bg-light text-text-muted gap-1 shadow-[10px_10px_0px_#000]">
         <For each={playerList()}>
-          {(player) => (
+          {(player, i) => (
             <div
               class={[
-                "bg-bg-light flex flex-col p-2 items-center rounded",
+                "text-black flex flex-col animate-[top-slide-in_1s_ease-in-out_both] p-2 items-center rounded font-marker text-xl shadow-[5px_5px_0px_#000]",
                 player.id === activePlayerId()
-                  ? "border-2 border-amber-300"
-                  : "",
+                  ? "bg-orange-500"
+                  : "bg-orange-700",
               ].join(" ")}
+              style={{
+                "animation-delay": `${i() * 500}ms`,
+              }}
             >
               <p>{player.name}</p>
               <p>{player.points}</p>
@@ -282,33 +286,25 @@ function GameRoom({
           )}
         </For>
       </div>
+      <Show when={wordSelection()} fallback={<></>}>
+        <WordSelection
+          setWordIndex={setWordIndex}
+          wordIndex={wordIndex}
+          timerWidth={timerWidth}
+          wordOptions={wordOptions}
+        />
+      </Show>
       <div class="relative col-start-1 flex flex-col gap-2 ">
-        <Show when={wordSelection()} fallback={<></>}>
-          <div class="absolute flex flex-col gap-10 top-[50%] right-[50%] py-5 translate-x-[50%] -translate-y-[50%] w-full bg-bg-dark/90 backdrop-blur-lg ">
-            <div
-              class="absolute bg-yellow-500 top-0 h-1"
-              style={{ width: `${timerWidth()}%` }}
-            ></div>
-            <p class="text-text text-center text-3xl">Choose</p>
-            <div class="flex items-center justify-center gap-20">
-              <For each={wordOptions()}>
-                {(word, index) => (
-                  <button
-                    class={[
-                      "text-text px-10 py-5 bg-bg-light/50 hover:bg-bg-dark rounded duration-150",
-                      index() == wordIndex() ? "border border-yellow-500" : "",
-                    ].join(" ")}
-                    onClick={(e) => setWordIndex(index)}
-                  >
-                    {word}
-                  </button>
-                )}
-              </For>
-            </div>
-          </div>
-        </Show>
-        <Show when={useUserContext()?.id.value() == activePlayerId()}>
-          <p class="text-text text-2xl text-center font-bold">
+        <Show
+          when={useUserContext()?.id.value() == activePlayerId()}
+          // when={false}
+          fallback={
+            <p class="text-yellow-500 font-laquer text-3xl text-center font-bold bg-red-500 p-1 self-center shadow-[10px_10px_0px_#000] after:content-[' '] after:h-full after:w-full after:top-0 after:left-0 after:absolute relative after:border-5 after:border-yellow-500">
+              {"_ ".repeat(selectedWord().length).trim()}
+            </p>
+          }
+        >
+          <p class="text-yellow-500 font-laquer text-3xl px-10 py-2 text-center font-bold bg-red-500 p-1 self-center shadow-[10px_10px_0px_#000] after:content-[' '] after:h-full after:w-full after:top-0 after:left-0 after:absolute relative after:border-5 after:border-yellow-500">
             {selectedWord()}
           </p>
         </Show>
@@ -332,7 +328,7 @@ function GameRoom({
           fallback={<></>}
         >
           <ToolBox
-            class="bg-bg gap-10 items-center border border-bg-light text-text-muted font-bold py-2 px-5 flex"
+            class="bg-yellow-500 gap-10 shadow-[5px_5px_1px_#000] items-center font-bold py-2 px-5 flex"
             colorSetter={colorSetter}
             undoHandler={undo}
             widthSetter={widthSetter}
@@ -342,7 +338,7 @@ function GameRoom({
         </Show>
       </div>
       <ChatBox
-        class="bg-bg w-full justify-self-end text-text-muted h-full font-bold border rounded shadow border-bg-light grid grid-rows-[1fr_auto] min-h-0"
+        class="bg-orange-500 shadow-[5px_5px_2px_#000] w-full justify-self-end h-full font-bold border rounded border-bg-light grid grid-rows-[1fr_auto] min-h-0"
         messages={messages()}
         addMessage={addMessage}
       />

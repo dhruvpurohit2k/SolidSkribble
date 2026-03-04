@@ -19,19 +19,19 @@ function ChatBox(props: ChatBoxProps) {
   return (
     <div class={props.class}>
       <div
-        class="flex flex-col gap-2 overflow-y-auto px-2 py-1 min-h-0"
+        class="flex flex-col gap-1 overflow-y-auto pt-5 min-h-0"
         ref={msgArea}
       >
         <For each={props.messages}>
           {(msg) => (
-            <div class="">
+            <div class="animate-[roll-in_1s_ease-in-out_both] font-marker text-yellow-500 text-xl bg-orange-700 p-2 rounded">
               <p>{msg.senderName + " : " + msg.content}</p>
             </div>
           )}
         </For>
       </div>
       <input
-        class="bg-bg-light w-full py-2 px-1 mt-auto text-lg outline-none"
+        class="bg-yellow-500 rounded w-[calc(100%-16px)] shadow-[5px_5px_1px_#000] mt-auto mx-2 mb-2 py-3 px-2 text-lg outline-none"
         placeholder="Enter your guess here"
         value={msg()}
         onInput={(e) => setMsg(e.target.value)}
