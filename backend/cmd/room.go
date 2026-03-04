@@ -4,8 +4,10 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/rand/v2"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -31,6 +33,9 @@ const (
 	NOTIFICATION
 	WORDSELECTION
 	ROUNDTIMESELECTION
+	REQUESTUSERNAME
+	REQUESTTOKEN
+	SERVERDENIED
 )
 
 type Room struct {
@@ -50,25 +55,70 @@ type Room struct {
 	wordSelectedChan chan uint8
 	RoundTime        uint8
 	AllPlayerGussed  chan struct{}
+	PlayerGussed     chan struct{}
+	PlayerPoints     int
+	TokenToPlayerMap map[string]*Player
 }
 
 // Adds Player to the room
-func (r *Room) AddPlayer(playerName string, conn *websocket.Conn) {
+func (r *Room) AddPlayer(conn *websocket.Conn) {
+	token, err := r.GetUserToken(conn)
+	if err != nil {
+		data := struct {
+			Message string `json:"message"`
+		}{
+			Message: "Fail to recive user token",
+		}
+		payload, _ := json.Marshal(data)
+		buffer := make([]byte, len(payload)+1)
+		buffer[0] = byte(SERVERDENIED)
+		copy(buffer[1:], payload)
+		conn.WriteMessage(websocket.BinaryMessage, buffer)
+		conn.Close()
+		r.mu.Unlock()
+		return
+	}
+	var newPlayer *Player
 	r.mu.Lock()
-	newPlayer := &Player{
-		Name:        playerName,
-		Conn:        conn,
-		Id:          r.idCounter + 1,
-		WriteBuffer: make(chan []byte),
+	if player, ok := r.TokenToPlayerMap[token]; ok {
+		player.Conn = conn
+		newPlayer = player
+		r.Players = append(r.Players, newPlayer)
+		// fmt.Printf("REPLACED OLD PLAYER %s WITHE NEW CONNECTION\n", player.Name)
+	} else {
+		username, err := r.GetUserName(conn)
+		if err != nil {
+			data := struct {
+				Message string `json:"message"`
+			}{
+				Message: "Fail to recive username",
+			}
+			payload, _ := json.Marshal(data)
+			buffer := make([]byte, len(payload)+1)
+			buffer[0] = byte(SERVERDENIED)
+			copy(buffer[1:], payload)
+			conn.WriteMessage(websocket.BinaryMessage, buffer)
+			conn.Close()
+			r.mu.Unlock()
+			return
+		}
+		newPlayer = &Player{
+			Name:        username,
+			Conn:        conn,
+			Id:          r.idCounter + 1,
+			WriteBuffer: make(chan []byte),
+			token:       token,
+		}
+		r.TokenToPlayerMap[token] = newPlayer
+		// fmt.Printf("ADDED NEW PLAYER WITH NAME %s and TOKEN %s\n", newPlayer.Name, newPlayer.token)
+		r.Players = append(r.Players, newPlayer)
+		go r.PlayerWriter(newPlayer)
+		r.idCounter++
 	}
-	r.Players = append(r.Players, newPlayer)
-	go r.PlayerWriter(newPlayer)
-	r.idCounter++
-	leader := r.Leader
-	if leader == nil {
+	if r.Leader == nil {
 		r.Leader = newPlayer
-		// r.ActivePlayer = newPlayer
 	}
+	go r.PlayerListener(newPlayer)
 	r.mu.Unlock()
 	r.sendPlayerListUpdate()
 	r.sendLeader()
@@ -78,7 +128,6 @@ func (r *Room) AddPlayer(playerName string, conn *websocket.Conn) {
 	if gameState == true {
 		r.UpdateNewPlayer(newPlayer)
 	}
-	r.PlayerListener(newPlayer)
 }
 
 // Update the newly Added player's game state
@@ -123,7 +172,34 @@ func (r *Room) PlayerWriter(player *Player) {
 	}
 }
 
-//Send Updates to newly Added player
+// USER INFO / SIGNALS
+// // GET TOKEN
+
+func (r *Room) GetUserToken(conn *websocket.Conn) (string, error) {
+	code := make([]byte, 1)
+	code[0] = byte(REQUESTTOKEN)
+	conn.WriteMessage(websocket.BinaryMessage, code)
+	_, tokenPayload, err := conn.ReadMessage()
+	if err != nil {
+		return "", err
+	}
+	return string(tokenPayload), nil
+
+}
+
+// // GET USERNAME
+// Send Updates to newly Added player
+func (r *Room) GetUserName(conn *websocket.Conn) (string, error) {
+	code := make([]byte, 1)
+	code[0] = byte(REQUESTUSERNAME)
+	conn.WriteMessage(websocket.BinaryMessage, code)
+	_, tokenPayload, err := conn.ReadMessage()
+	if err != nil {
+		return "", err
+	}
+	return string(tokenPayload), nil
+
+}
 
 // Broadcasts updated player list to all the connected players
 func (r *Room) sendPlayerListUpdate() {
@@ -143,8 +219,8 @@ func (r *Room) sendPlayerListUpdate() {
 func (r *Room) PlayerListener(player *Player) {
 	conn := player.Conn
 	defer func() {
-		close(player.WriteBuffer)
 		r.mu.Lock()
+		isLeader := r.Leader != nil && r.Leader == player
 		updatePlayerList := make([]*Player, 0, max(len(r.Players)-1, 0))
 		for _, p := range r.Players {
 			if p.Id == player.Id {
@@ -155,9 +231,10 @@ func (r *Room) PlayerListener(player *Player) {
 		if len(updatePlayerList) == 0 {
 			r.Leader = nil
 			r.ActivePlayer = nil
-		} else if r.Leader.Id == player.Id {
+		} else if isLeader {
 			r.Leader = updatePlayerList[0]
 		}
+		// fmt.Printf("PLAYER %s left, new list is %v\n", player.Name, updatePlayerList)
 		r.Players = updatePlayerList
 		r.mu.Unlock()
 		r.sendPlayerListUpdate()
@@ -199,8 +276,7 @@ func (r *Room) PlayerListener(player *Player) {
 			r.ChangeCurrentColor(p)
 
 		case MESSAGEINPUT:
-			go r.broadcastChange(p, player)
-			r.AddMesssage(p)
+			go r.HandleUserMessage(p, player)
 		case STROKEWIDTH:
 			if r.ActivePlayer.Id != player.Id {
 				continue
@@ -355,15 +431,31 @@ func (r *Room) broadcastChange(p []byte, sender *Player) {
 }
 
 // Add Message
-func (r *Room) AddMesssage(p []byte) {
+func (r *Room) HandleUserMessage(p []byte, player *Player) {
 	jsonBytes := p[1:]
 	message := struct {
 		SenderName string `json:"senderName"`
 		Content    string `json:"content"`
 	}{}
 	json.Unmarshal(jsonBytes, &message)
+	if strings.ToLower(message.Content) == strings.ToLower(r.CurrentWord) && !player.hasGuessed {
+		message.Content = "GUESSED"
+		fmt.Println(player.Name, "GUSSED CORRECTLY")
+		r.mu.Lock()
+		player.Points = player.Points + r.PlayerPoints
+		r.PlayerPoints = max(int(math.Round(float64(r.PlayerPoints)*0.8)), 1)
+		r.PlayerGussed <- struct{}{}
+		player.hasGuessed = true
+		r.mu.Unlock()
+	}
+	payload, _ := json.Marshal(message)
+	buffer := make([]byte, len(payload)+1)
+	buffer[0] = byte(MESSAGEINPUT)
+	copy(buffer[1:], payload)
 	r.mu.Lock()
-	r.Messages = append(r.Messages, message)
+	for _, player := range r.Players {
+		player.WriteBuffer <- buffer
+	}
 	r.mu.Unlock()
 }
 
@@ -397,24 +489,67 @@ func (r *Room) BeginGame() {
 			r.ActivePlayer = player
 			r.mu.Unlock()
 			r.sendActivePlayer()
-			r.SendNotification("ACTIVE PLAYER", r.ActivePlayer.Name, nil)
+			r.SendNotification(r.ActivePlayer.Name, "is the active player", nil)
 			timer := time.After(3 * time.Second)
 			<-timer
 			r.SendNotification("", fmt.Sprintf("%s is choosing Word", r.ActivePlayer.Name), r.ActivePlayer)
 			r.AwaitWordSelection()
 			timer = time.After(time.Duration(r.RoundTime) * time.Second)
+			// fmt.Println("Waiting for ", r.RoundTime)
+			gussedPlayer := 0
 			select {
 			case <-timer:
 				r.ShowScore()
-			case <-r.AllPlayerGussed:
-				r.ShowScore()
+				fmt.Println("TIMER RAN OUT")
+			case <-r.PlayerGussed:
+				fmt.Println("ONE PLAYER GUSSED CORRECTLY")
+				gussedPlayer++
+				r.mu.Lock()
+				if gussedPlayer >= len(r.Players)-1 {
+					fmt.Println("ALL PLAYER GUSSED CORRECTLY")
+					r.mu.Unlock()
+					break
+				}
+				r.mu.Unlock()
+
 			}
+			r.mu.Lock()
+			for _, player := range r.Players {
+				player.hasGuessed = false
+			}
+			r.PlayerPoints = 10
+			r.mu.Unlock()
+			r.sendPlayerListUpdate()
+			timer = time.After(5 * time.Second)
+			<-timer
 
 		}
 	}
 	r.QuitChannel <- struct{}{}
 }
 
+// func (r *Room) GuessListener(timer <-chan time.Time) {
+// 	// Using AllPlayerGuessed as make do channel to close the thread if timer runs out.
+// 	correctGuessCount := 0
+// 	allGussed := false
+// 	for range timer {
+// 		select {
+// 		case <-r.PlayerGussed:
+// 			correctGuessCount++
+// 			r.mu.Lock()
+// 			defer r.mu.Unlock()
+// 			if correctGuessCount >= len(r.Players)-1 {
+// 				allGussed = true
+// 				break
+// 			}
+// 		}
+// 	}
+// 	if allGussed {
+// 		r.AllPlayerGussed <- struct{}{}
+// 	}
+// 	return
+
+// }
 func (r *Room) ShowScore() {
 
 }
@@ -482,6 +617,9 @@ func CreateRoom(words []string) *Room {
 		words:            words,
 		wordSelectedChan: make(chan uint8),
 		AllPlayerGussed:  make(chan struct{}),
+		TokenToPlayerMap: make(map[string]*Player, 10),
+		PlayerGussed:     make(chan struct{}),
+		PlayerPoints:     10,
 	}
 	return room
 }

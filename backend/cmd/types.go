@@ -34,4 +34,6 @@ type Player struct {
 	Id          int             `json:"id"`
 	Points      int             `json:"points"`
 	WriteBuffer chan []byte     `json:"-"`
+	token       string
+	hasGuessed  bool
 }

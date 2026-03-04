@@ -63,10 +63,5 @@ func (s *SolidSkribbleServer) joinGame(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	_, p, err := conn.ReadMessage()
-	if err != nil {
-		conn.Close()
-		return
-	}
-	room.AddPlayer(string(p), conn)
+	room.AddPlayer(conn)
 }
