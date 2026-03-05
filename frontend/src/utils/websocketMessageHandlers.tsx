@@ -1,5 +1,5 @@
 import { Accessor, Setter } from "solid-js";
-import { type Player } from "./types";
+import { Score, type Player } from "./types";
 import { Canvas, Stroke } from "../utils/types";
 import { useUserContext } from "../context/UserContext";
 import { Notification } from "./types";
@@ -118,5 +118,50 @@ export function recieveWords(
   const jsonString = decoder.decode(payload);
   const { words } = JSON.parse(jsonString) as { words: string[] };
   setWordOptions(words);
+}
+
+export function recieveScoreBoard(
+  payload: ArrayBuffer,
+  scoreBoard: Setter<Score[]>,
+  showBoard: Setter<boolean>,
+) {
+  const scores = JSON.parse(decoder.decode(payload.slice(1))) as Score[];
+  console.log(scores);
+  scoreBoard(scores);
+  showBoard(true);
+  setTimeout(() => {
+    showBoard(false);
+  }, 2500);
+  // console.log("GOT SCORES -> ", scores);
+}
+
+export function recieveRoundTime(
+  payload: ArrayBuffer,
+  setRoundTime: Setter<number>,
+) {
+  const dataview = new DataView(payload);
+  setRoundTime(dataview.getUint8(1));
+}
+
+export function startRound(
+  roundTime: Accessor<number>,
+  setRoundTime: Setter<number>,
+) {
+  const interval = setInterval(() => {
+    setRoundTime((time) => {
+      if (time <= 0) return 0;
+      return time - 1;
+    });
+  }, 1000);
+  setTimeout(() => {
+    clearInterval(interval);
+  }, roundTime() * 1000);
+}
+export function recieveNumberOfRounds(
+  payload: ArrayBuffer,
+  setNumRounds: Setter<number>,
+) {
+  const view = new DataView(payload);
+  setNumRounds(view.getUint8(1));
 }
 export function payloadHandler(data: any) {}

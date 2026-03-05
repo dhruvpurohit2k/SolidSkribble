@@ -31,3 +31,8 @@ export type Notification = {
   heading: string;
   content: string;
 };
+
+export type Score = {
+  playerName: string;
+  pointsAdded: number;
+};

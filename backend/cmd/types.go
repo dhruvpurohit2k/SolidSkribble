@@ -37,3 +37,7 @@ type Player struct {
 	token       string
 	hasGuessed  bool
 }
+type ScoreInfo struct {
+	PlayerName  string `json:"playerName"`
+	PointsAdded int    `json:"pointsAdded"`
+}

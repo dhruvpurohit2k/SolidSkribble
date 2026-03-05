@@ -1,10 +1,17 @@
-import { Accessor, createSignal, For, Show } from "solid-js";
+import { Accessor, createSignal, For, Setter, Show } from "solid-js";
 import { useUserContext } from "../context/UserContext";
 import { Player } from "../utils/types";
 import { WebSocketMessageType } from "../utils/websocketMessageType";
 import { useNavigate } from "@solidjs/router";
-function Lobby({ playerList, conn, leaderId }: GameDataProps) {
-  const [roundTime, setRoundTime] = createSignal<number>(60);
+function Lobby({
+  playerList,
+  conn,
+  leaderId,
+  roundTime,
+  setRoundTime,
+  numRounds,
+  setNumRounds,
+}: GameDataProps) {
   const userContext = useUserContext();
   const navigator = useNavigate();
   return (
@@ -87,6 +94,38 @@ function Lobby({ playerList, conn, leaderId }: GameDataProps) {
               </button>
             </div>
           </div>
+          <div class="self-center">
+            <p class="font-bold font-mono text-xl text-center">
+              NUMBER OF ROUNDS
+            </p>
+            <div class="flex gap-2 items-center justify-center ">
+              <button
+                class="bg-orange-500 shadow-[10px_10px_0px_#000] hover:bg-orange-700 hover:scale-95 hover:shadow-none py-1 px-4 font-bold bg-bg-light rounded text-xl active:bg-bg-dark duration-150"
+                onClick={() =>
+                  setNumRounds((rt) => {
+                    if (rt == 1) return 1;
+                    else return rt - 1;
+                  })
+                }
+              >
+                -
+              </button>
+              <p class="p-1 text-center flex-1 font-bold rounded min-w-[7ch] text-4xl font-mono">
+                {numRounds() + " Rounds"}
+              </p>
+              <button
+                class="bg-orange-500 shadow-[10px_10px_0px_#000] hover:bg-orange-700 hover:scale-95 hover:shadow-none py-1 px-3 font-bold bg-bg-light rounded text-xl active:bg-bg-dark duration-150"
+                onClick={() =>
+                  setNumRounds((rt) => {
+                    if (rt == 6) return 6;
+                    else return rt + 1;
+                  })
+                }
+              >
+                +
+              </button>
+            </div>
+          </div>
           <button
             class="shadow-[10px_10px_0px_#000] hover:scale-95 hover:shadow-none font-bold bg-orange-500 text-orange-100 hover:bg-orange-700 text-xl duration-150 p-2 rounded mx-auto"
             onClick={() => {
@@ -94,6 +133,11 @@ function Lobby({ playerList, conn, leaderId }: GameDataProps) {
               let view = new DataView(buffer);
               view.setUint8(0, WebSocketMessageType.ROUNDTIMESELECTION);
               view.setUint8(1, roundTime());
+              conn()?.send(buffer);
+              buffer = new ArrayBuffer(2);
+              view = new DataView(buffer);
+              view.setUint8(0, WebSocketMessageType.ROUNDCOUNT);
+              view.setUint8(1, numRounds());
               conn()?.send(buffer);
               buffer = new ArrayBuffer(2);
               view = new DataView(buffer);
@@ -124,4 +168,8 @@ type GameDataProps = {
   conn: Accessor<WebSocket | undefined>;
   playerList: Accessor<Player[]>;
   leaderId: Accessor<number>;
+  roundTime: Accessor<number>;
+  setRoundTime: Setter<number>;
+  numRounds: Accessor<number>;
+  setNumRounds: Setter<number>;
 };

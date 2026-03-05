@@ -36,6 +36,10 @@ const (
 	REQUESTUSERNAME
 	REQUESTTOKEN
 	SERVERDENIED
+	SCOREBOARD
+	ROUNDSTARTSIGNAL
+	ROUNDENDSIGNAL
+	ROUNDCOUNT
 )
 
 type Room struct {
@@ -58,6 +62,8 @@ type Room struct {
 	PlayerGussed     chan struct{}
 	PlayerPoints     int
 	TokenToPlayerMap map[string]*Player
+	ScoreCard        map[string]ScoreInfo
+	NumRound         uint8
 }
 
 // Adds Player to the room
@@ -288,8 +294,12 @@ func (r *Room) PlayerListener(player *Player) {
 			if r.Leader != player {
 				continue
 			}
-			r.ChangeRoundTime(p)
-
+			go r.ChangeRoundTime(p)
+		case ROUNDCOUNT:
+			if r.Leader != player {
+				continue
+			}
+			go r.ChangeRoundCount(p)
 		case WORDSELECTION:
 			if r.ActivePlayer != player {
 				continue
@@ -304,7 +314,22 @@ func (r *Room) PlayerListener(player *Player) {
 }
 
 func (r *Room) ChangeRoundTime(p []byte) {
+	r.mu.Lock()
 	r.RoundTime = uint8(p[1])
+	for _, player := range r.Players {
+		player.WriteBuffer <- p
+	}
+	r.mu.Unlock()
+
+}
+
+func (r *Room) ChangeRoundCount(p []byte) {
+	r.mu.Lock()
+	r.NumRound = uint8(p[1])
+	for _, player := range r.Players {
+		player.WriteBuffer <- p
+	}
+	r.mu.Unlock()
 }
 
 // Send the new Leader to other players
@@ -442,6 +467,10 @@ func (r *Room) HandleUserMessage(p []byte, player *Player) {
 		message.Content = "GUESSED"
 		fmt.Println(player.Name, "GUSSED CORRECTLY")
 		r.mu.Lock()
+		r.ScoreCard[player.Name] = ScoreInfo{
+			PlayerName:  player.Name,
+			PointsAdded: r.PlayerPoints,
+		}
 		player.Points = player.Points + r.PlayerPoints
 		r.PlayerPoints = max(int(math.Round(float64(r.PlayerPoints)*0.8)), 1)
 		r.PlayerGussed <- struct{}{}
@@ -487,6 +516,7 @@ func (r *Room) BeginGame() {
 				continue
 			}
 			r.ActivePlayer = player
+			r.ScoreCard = make(map[string]ScoreInfo, len(r.Players))
 			r.mu.Unlock()
 			r.sendActivePlayer()
 			r.SendNotification(r.ActivePlayer.Name, "is the active player", nil)
@@ -497,6 +527,7 @@ func (r *Room) BeginGame() {
 			timer = time.After(time.Duration(r.RoundTime) * time.Second)
 			// fmt.Println("Waiting for ", r.RoundTime)
 			gussedPlayer := 0
+			go r.SendStartSignal()
 			select {
 			case <-timer:
 				r.ShowScore()
@@ -516,10 +547,17 @@ func (r *Room) BeginGame() {
 			r.mu.Lock()
 			for _, player := range r.Players {
 				player.hasGuessed = false
+				if _, ok := r.ScoreCard[player.Name]; !ok {
+					r.ScoreCard[player.Name] = ScoreInfo{
+						PlayerName:  player.Name,
+						PointsAdded: 0,
+					}
+				}
+
 			}
 			r.PlayerPoints = 10
 			r.mu.Unlock()
-			r.sendPlayerListUpdate()
+			r.ShowScore()
 			timer = time.After(5 * time.Second)
 			<-timer
 
@@ -551,7 +589,19 @@ func (r *Room) BeginGame() {
 
 // }
 func (r *Room) ShowScore() {
-
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	data := make([]ScoreInfo, 0, len(r.ScoreCard))
+	for _, score := range r.ScoreCard {
+		data = append(data, score)
+	}
+	payload, _ := json.Marshal(data)
+	buffer := make([]byte, len(payload)+1)
+	buffer[0] = byte(SCOREBOARD)
+	copy(buffer[1:], payload)
+	for _, player := range r.Players {
+		player.WriteBuffer <- buffer
+	}
 }
 
 func (r *Room) AwaitWordSelection() {
@@ -597,6 +647,16 @@ func (r *Room) SendNotification(heading string, content string, skipPlayer *Play
 		if player == skipPlayer {
 			continue
 		}
+		player.WriteBuffer <- buffer
+	}
+	r.mu.Unlock()
+}
+
+func (r *Room) SendStartSignal() {
+	buffer := make([]byte, 1)
+	buffer[0] = byte(ROUNDSTARTSIGNAL)
+	r.mu.Lock()
+	for _, player := range r.Players {
 		player.WriteBuffer <- buffer
 	}
 	r.mu.Unlock()

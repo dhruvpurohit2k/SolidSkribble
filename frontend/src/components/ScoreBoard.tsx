@@ -1,16 +1,16 @@
 import { Accessor, For } from "solid-js";
-import { Player } from "../utils/types";
+import { Player, Score } from "../utils/types";
 
-function ScoreBoard({ passedClass, players }: ScoreBoardProps) {
+function ScoreBoard({ passedClass, ScoreBoard }: ScoreBoardProps) {
   return (
     <div class={passedClass}>
       <p class="text-6xl text-red-600 font-laquer">SCORE</p>
       <div>
-        <For each={players()}>
+        <For each={ScoreBoard()}>
           {(player) => (
             <div class="*:text-3xl flex gap-1">
-              <p class="font-marker">{player.name} : </p>
-              <p class="text-green-700 font-marker"> + {player.points}</p>
+              <p class="font-marker">{player.playerName} : </p>
+              <p class="text-green-700 font-marker"> + {player.pointsAdded}</p>
             </div>
           )}
         </For>
@@ -20,6 +20,6 @@ function ScoreBoard({ passedClass, players }: ScoreBoardProps) {
 }
 export default ScoreBoard;
 type ScoreBoardProps = {
-  players: Accessor<Player[]>;
+  ScoreBoard: Accessor<Score[]>;
   passedClass: string;
 };

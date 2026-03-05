@@ -6,17 +6,22 @@ import { useNavigate, useParams } from "@solidjs/router";
 import { UserContext, useUserContext } from "../context/UserContext";
 import {
   recieveNotification,
+  recieveNumberOfRounds,
+  recieveRoundTime,
+  recieveScoreBoard,
   recieveWords,
+  startRound,
   updatePlayers,
 } from "../utils/websocketMessageHandlers";
 import { WebSocketMessageType } from "../utils/websocketMessageType";
-import { Message, Player } from "../utils/types";
+import { Message, Player, Score } from "../utils/types";
 import { Notification } from "../utils/types";
 import { sleep } from "../utils/sleep";
 import { onCleanup } from "solid-js";
 import ScoreBoard from "../components/ScoreBoard";
 import NotificationComponenet from "../components/Notification";
 function Game() {
+  const [roundTime, setRoundTime] = createSignal<number>(60);
   const params = useParams();
   const navigate = useNavigate();
   const userContext = useUserContext();
@@ -37,7 +42,9 @@ function Game() {
   const [notification, setNotification] = createSignal<Notification | null>(
     null,
   );
-  const [showScoreBoard, setShowBoard] = createSignal<boolean>(false);
+  const [numRounds, setNumRounds] = createSignal<number>(3);
+  const [scoreBoard, setScoreBoard] = createSignal<Score[]>([]);
+  const [showScoreBoard, setShowScoreBoard] = createSignal<boolean>(false);
   const [notificationQueue, setNotificationQueue] = createSignal<
     Notification[]
   >([]);
@@ -142,6 +149,18 @@ function Game() {
         case WebSocketMessageType.SERVERDENIED:
           console.log("SERVER ERROR");
           break;
+        case WebSocketMessageType.SCOREBOARD:
+          recieveScoreBoard(payload, setScoreBoard, setShowScoreBoard);
+          break;
+        case WebSocketMessageType.ROUNDTIMESELECTION:
+          recieveRoundTime(payload, setRoundTime);
+          break;
+        case WebSocketMessageType.ROUNDSTARTSIGNAL:
+          startRound(roundTime, setRoundTime);
+          break;
+        case WebSocketMessageType.ROUNDCOUNT:
+          recieveNumberOfRounds(payload, setNumRounds);
+          break;
         default:
           alert("NOT IMPLEMENTED PAYLOADTYPE " + payloadType);
       }
@@ -189,20 +208,28 @@ function Game() {
     <div class="overflow-x-hidden h-full flex flex-col">
       <Show when={showNotificaiton()}>
         <NotificationComponenet
-          passedClass="z-100 flex flex-col absolute bg-red-500 right-[50%] top-[50%] -translate-y-[50%] shadow-[10px_10px_0px_#000] px-10 py-5 rounded-xl translate-x-[50%] animate-[notification-animation_4s_ease-in-out]"
+          passedClass="z-100 flex flex-col absolute bg-red-700 right-[50%] top-[50%] -translate-y-[50%] shadow-[10px_10px_0px_#000] px-10 py-5 rounded-xl translate-x-[50%] animate-[notification-animation_4s_ease-in-out] border border-black"
           notification={notification}
         />
       </Show>
       <Show when={showScoreBoard()}>
         <ScoreBoard
           passedClass="flex flex-col gap-5 items-center absolute p-10 bg-yellow-500 right-[50%] top-[50%] -translate-y-[50%] translate-x-[50%] z-100 shadow-[20px_20px_0px_#000] after:border-30 p-20 rounded-xl after:rounded-xl  after:border-teal-500 after:content-[' '] after:h-full after:w-full after:absolute after:top-0 after:left-0 after:scale-100 animate-[roll-in_500ms_ease-in-out]"
-          players={players}
+          ScoreBoard={scoreBoard}
         />
       </Show>
       <Show
         when={gameStarted()}
         fallback={
-          <Lobby playerList={players} conn={connection} leaderId={leaderId} />
+          <Lobby
+            playerList={players}
+            conn={connection}
+            leaderId={leaderId}
+            roundTime={roundTime}
+            setRoundTime={setRoundTime}
+            numRounds={numRounds}
+            setNumRounds={setNumRounds}
+          />
         }
       >
         {
@@ -220,6 +247,8 @@ function Game() {
             wordOptions={wordOptions}
             selectedWord={selectedWord}
             acceptWord={acceptWord}
+            roundTime={roundTime}
+            roundNumber={numRounds}
           />
         }
       </Show>

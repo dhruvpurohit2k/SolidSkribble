@@ -39,12 +39,15 @@ function GameRoom({
   activePlayerId,
   addMessage,
   selectedWord,
+  roundTime,
+  roundNumber,
 }: GameRoomProps) {
   const strokes: Stroke[] = [];
   const [currentColor, setCurrentColor] = createSignal<string>("#000000");
   const [timerWidth, setTimerWidth] = createSignal<number>(100);
   const [currentWidth, setCurrentWidth] = createSignal<number>(2);
-  const [wordIndex, setWordIndex] = createSignal<number>(0);
+  const [wordIndex, setWordIndex] = createSignal<number>(-1);
+  const [wordSelected, setWordSelected] = createSignal<boolean>(false);
   const encoder = new TextEncoder();
   let rect: DOMRect;
   let isDrawing = false;
@@ -85,10 +88,13 @@ function GameRoom({
           setTimerWidth((width) => width - 1);
         }, 150);
         setTimeout(() => {
-          setWordSelection(false);
-          acceptWord(wordIndex());
-          setWordIndex(0);
+          if (wordSelected() !== true) {
+            acceptWord(0);
+            setWordSelection(false);
+          }
           clearInterval(interval);
+          setWordSelected(false);
+          setWordIndex(-1);
           setTimerWidth(100);
         }, 15000);
       },
@@ -108,7 +114,6 @@ function GameRoom({
   createEffect(
     on(widthSignal, () => {
       recieveStrokeWidth(widthSignal()!, canvas, setCurrentWidth);
-      console.log("Chaning width to ", widthSignal());
     }),
   );
   createEffect(
@@ -295,22 +300,34 @@ function GameRoom({
           wordIndex={wordIndex}
           timerWidth={timerWidth}
           wordOptions={wordOptions}
+          acceptWord={acceptWord}
+          setWordSelection={setWordSelection}
+          setWordSelected={setWordSelected}
         />
       </Show>
       <div class="relative col-start-1 flex flex-col gap-2 ">
-        <Show
-          when={useUserContext()?.id.value() == activePlayerId()}
-          // when={false}
-          fallback={
-            <p class="text-yellow-500 font-laquer text-3xl text-center font-bold bg-red-500 p-1 self-center shadow-[10px_10px_0px_#000] after:content-[' '] after:h-full after:w-full after:top-0 after:left-0 after:absolute relative after:border-5 after:border-yellow-500 rounded after:rounded">
-              {"_ ".repeat(selectedWord().length).trim()}
+        <div class="flex justify-around">
+          <div class=" text-xl font-marker bg-orange-500 text-yellow-500 shadow-[10px_10px_0px_#000] items-center flex px-5 py-2 border border-black">
+            ROUND : {roundNumber()}
+          </div>
+          <Show
+            when={useUserContext()?.id.value() == activePlayerId()}
+            // when={false}
+            fallback={
+              <p class="text-yellow-500 font-laquer text-3xl text-center font-bold bg-red-500 p-1 self-center shadow-[10px_10px_0px_#000] after:content-[' '] after:h-full after:w-full after:top-0 after:left-0 after:absolute relative after:border-5 after:border-yellow-500 rounded after:rounded">
+                {"_ ".repeat(selectedWord().length).trim()}
+              </p>
+            }
+          >
+            <p class="text-yellow-500 font-laquer text-3xl px-10 py-2 text-center font-bold bg-red-500 p-1 self-center shadow-[10px_10px_0px_#000] after:content-[' '] after:h-full after:w-full after:top-0 after:left-0 after:absolute relative after:border-5 after:border-yellow-500 rounded after:rounded">
+              {selectedWord()}
             </p>
-          }
-        >
-          <p class="text-yellow-500 font-laquer text-3xl px-10 py-2 text-center font-bold bg-red-500 p-1 self-center shadow-[10px_10px_0px_#000] after:content-[' '] after:h-full after:w-full after:top-0 after:left-0 after:absolute relative after:border-5 after:border-yellow-500 rounded after:rounded">
-            {selectedWord()}
-          </p>
-        </Show>
+          </Show>
+          <div class=" text-xl relative font-marker bg-orange-500 text-yellow-500 shadow-[10px_10px_0px_#000] min-w-[12ch] items-center flex px-5 py-2 border border-black justify-center">
+            <p>TIMER : </p>
+            <p class="ml-auto">{roundTime()}</p>
+          </div>
+        </div>
         <canvas
           ref={canvasRef}
           class={[
@@ -364,4 +381,6 @@ type GameRoomProps = {
   wordOptions: Accessor<string[]>;
   selectedWord: Accessor<string>;
   acceptWord: (index: number) => void;
+  roundTime: Accessor<number>;
+  roundNumber: Accessor<number>;
 };
