@@ -69,9 +69,7 @@ function Game() {
   onMount(async () => {
     const conn = new WebSocket(`ws://localhost:5000/game/${params.id}`);
     conn.binaryType = "arraybuffer";
-    conn.onopen = (_) => {
-      conn.send(userContext!.username.value());
-    };
+    conn.onopen = (_) => {};
     conn.onmessage = (ev) => {
       const payload = ev.data as ArrayBuffer;
       const payloadView = new DataView(payload);
@@ -135,6 +133,15 @@ function Game() {
         case WebSocketMessageType.WORDSELECTION:
           recieveWords(payload, setWordOptions);
           break;
+        case WebSocketMessageType.REQUESTTOKEN:
+          connection()?.send(userContext?.token.value()!);
+          break;
+        case WebSocketMessageType.REQUESTUSERNAME:
+          connection()?.send(userContext?.username.value()!);
+          break;
+        case WebSocketMessageType.SERVERDENIED:
+          console.log("SERVER ERROR");
+          break;
         default:
           alert("NOT IMPLEMENTED PAYLOADTYPE " + payloadType);
       }
@@ -143,12 +150,20 @@ function Game() {
       navigate("/", { replace: true });
     };
     setConnection(conn);
+    onCleanup(() => {
+      if (
+        conn.OPEN === WebSocket.OPEN ||
+        conn.readyState === WebSocket.CONNECTING
+      ) {
+        conn.close();
+      }
+    });
   });
   function addMessage(message: string) {
-    setMessages((oldMessages) => [
-      ...oldMessages,
-      { senderName: userContext?.username.value()!, content: message },
-    ]);
+    // setMessages((oldMessages) => [
+    //   ...oldMessages,
+    //   { senderName: userContext?.username.value()!, content: message },
+    // ]);
     const jsonString = JSON.stringify({
       senderName: userContext?.username.value()!,
       content: message,
@@ -174,7 +189,7 @@ function Game() {
     <div class="overflow-x-hidden h-full flex flex-col">
       <Show when={showNotificaiton()}>
         <NotificationComponenet
-          passedClass="z-100 flex flex-col absolute bg-blue-600 right-[50%] top-[50%] -translate-y-[50%] w-[80%] shadow-[10px_10px_0px_#000] after:border-10 p-10 rounded-xl after:rounded-xl  after:border-white after:content-[' '] after:h-full after:w-full after:absolute after:top-0 after:left-0 after:scale-95 translate-x-[50%] animate-[notification-animation_4s_ease-in-out]"
+          passedClass="z-100 flex flex-col absolute bg-red-500 right-[50%] top-[50%] -translate-y-[50%] shadow-[10px_10px_0px_#000] px-10 py-5 rounded-xl translate-x-[50%] animate-[notification-animation_4s_ease-in-out]"
           notification={notification}
         />
       </Show>

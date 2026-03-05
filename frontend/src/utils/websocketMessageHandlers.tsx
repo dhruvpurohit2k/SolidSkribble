@@ -61,6 +61,7 @@ export function recieveCanvasInput(
   const y = view.getUint16(4, false);
   switch (mouseEvent) {
     case 0:
+      ctx.lineWidth = canvas.currentWidth;
       ctx.strokeStyle = canvas.currentColor;
       ctx.beginPath();
       ctx.moveTo(x, y);
@@ -71,6 +72,7 @@ export function recieveCanvasInput(
       });
       break;
     case 1:
+      ctx.lineWidth = canvas.currentWidth;
       ctx.strokeStyle = canvas.currentColor;
       ctx.lineTo(x, y);
       ctx.stroke();
@@ -89,6 +91,7 @@ export function recieveNotification(
   const notification = JSON.parse(
     decoder.decode(payload.slice(1)),
   ) as Notification;
+  console.log(notification);
   notificationQueueSetter((oldNoti) => [...oldNoti, notification]);
 }
 export function recieveColor(

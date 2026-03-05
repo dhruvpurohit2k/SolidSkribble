@@ -12,6 +12,7 @@
   "license": "MIT",
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.13",
+    "@types/uuid": "^10.0.0",
     "solid-devtools": "^0.34.3",
     "tailwindcss": "^4.1.13",
     "typescript": "^5.9.2",
@@ -21,6 +22,7 @@
   "dependencies": {
     "@solidjs/router": "^0.15.4",
     "@toolwind/corner-shape": "^0.0.8-3",
-    "solid-js": "^1.9.9"
+    "solid-js": "^1.9.9",
+    "uuid": "^13.0.0"
   }
 }

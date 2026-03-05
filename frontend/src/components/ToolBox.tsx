@@ -1,4 +1,4 @@
-import { Accessor, createSignal } from "solid-js";
+import { Accessor } from "solid-js";
 
 function ToolBox(props: ToolBoxProps) {
   return (
@@ -24,7 +24,7 @@ function ToolBox(props: ToolBoxProps) {
         <p>{props.currentWidth()}</p>
       </div>
       <button
-        class="duration-150 ml-auto px-2 py-1 text-3xl text-red-500 font-laquer text-shadow-[2px_2px_0px_#000]"
+        class="duration-150 ml-auto hover:scale-110 active:scale-95 active:text-shadow-none px-2 py-1 text-3xl text-red-500 font-laquer text-shadow-[2px_2px_0px_#000]"
         onClick={() => props.undoHandler()}
       >
         UNDO

@@ -2,11 +2,13 @@ import { Accessor, createSignal, For, Show } from "solid-js";
 import { useUserContext } from "../context/UserContext";
 import { Player } from "../utils/types";
 import { WebSocketMessageType } from "../utils/websocketMessageType";
+import { useNavigate } from "@solidjs/router";
 function Lobby({ playerList, conn, leaderId }: GameDataProps) {
   const [roundTime, setRoundTime] = createSignal<number>(60);
   const userContext = useUserContext();
+  const navigator = useNavigate();
   return (
-    <div class="my-auto mx-auto relative gap-10 bg-yellow-500  p-10 rounded *:text-text-muted flex flex-col lg:flex-row w-[clamp(240px,50%,1000px)] shadow-[50px_40px_0px_10px_#000] after:content-[' '] after:h-full after:w-full after:scale-95 after:border-2 after:border-yellow-700 after:absolute after:top-0 after:left-0 after:rounded *:z-10 animate-[right-slide-in_1s_ease-in-out] duration-150ms">
+    <div class="my-auto mx-auto relative gap-10 bg-yellow-500 p-10 rounded *:text-text-muted flex flex-col lg:flex-row w-[clamp(240px,50%,1000px)] shadow-[50px_40px_0px_10px_#000] after:content-[' '] after:h-full after:w-full after:scale-95 after:border-4 after:border-yellow-700 after:absolute after:top-0 after:left-0 after:rounded *:z-10 animate-[right-slide-in_1s_ease-in-out] duration-150ms relative">
       <div class="flex flex-col max-h-100 ">
         <p class="text-center font-bold text-3xl mb-10 font-mono">
           PLAYERS IN THE LOBBY
@@ -55,11 +57,11 @@ function Lobby({ playerList, conn, leaderId }: GameDataProps) {
       >
         <div class="my-auto flex flex-1 flex-col gap-5">
           <p class="text-3xl font-mono font-bold text-center">GAME SETTINGS</p>
-          <div>
+          <div class="self-center">
             <p class="font-bold font-mono text-xl text-center">ROUND TIME</p>
-            <div class="flex gap-3 items-center justify-center">
+            <div class="flex gap-2 items-center justify-center ">
               <button
-                class="py-1 px-4 font-bold bg-bg-light rounded text-xl active:bg-bg-dark duration-150"
+                class="bg-orange-500 shadow-[10px_10px_0px_#000] hover:bg-orange-700 hover:scale-95 hover:shadow-none py-1 px-4 font-bold bg-bg-light rounded text-xl active:bg-bg-dark duration-150"
                 onClick={() =>
                   setRoundTime((rt) => {
                     if (rt == 15) return 15;
@@ -69,11 +71,11 @@ function Lobby({ playerList, conn, leaderId }: GameDataProps) {
               >
                 -
               </button>
-              <p class="p-1 text-center flex-1 font-bold rounded min-w-[7ch] text-2xl font-mono">
+              <p class="p-1 text-center flex-1 font-bold rounded min-w-[7ch] text-4xl font-mono">
                 {roundTime() + " sec"}
               </p>
               <button
-                class="py-1 px-3 font-bold bg-bg-light rounded text-xl active:bg-bg-dark duration-150"
+                class="bg-orange-500 shadow-[10px_10px_0px_#000] hover:bg-orange-700 hover:scale-95 hover:shadow-none py-1 px-3 font-bold bg-bg-light rounded text-xl active:bg-bg-dark duration-150"
                 onClick={() =>
                   setRoundTime((rt) => {
                     if (rt == 180) return 180;
@@ -104,6 +106,14 @@ function Lobby({ playerList, conn, leaderId }: GameDataProps) {
           </button>
         </div>
       </Show>
+      <button
+        class="absolute -bottom-25 rounded right-0 bg-orange-500 text-yellow-500 font-laquer text-xl px-5 py-2 shadow-[10px_10px_0px_#000] hover:scale-95 hover:bg-orange-700 hover:shadow-none duration-150"
+        onClick={() => {
+          navigator("/", { replace: true });
+        }}
+      >
+        BACK
+      </button>
     </div>
   );
 }

@@ -108,6 +108,7 @@ function GameRoom({
   createEffect(
     on(widthSignal, () => {
       recieveStrokeWidth(widthSignal()!, canvas, setCurrentWidth);
+      console.log("Chaning width to ", widthSignal());
     }),
   );
   createEffect(
@@ -186,6 +187,8 @@ function GameRoom({
   function draw(x: number, y: number) {
     if (!isDrawing || !ctx) return;
     if (x < 0 || y < 0) return;
+    ctx.lineWidth = canvas.currentWidth;
+    ctx.strokeStyle = canvas.currentColor;
     ctx.lineTo(x, y);
     ctx.stroke();
     canvas.strokes.at(-1)!.coordinates.push([x, y]);
@@ -299,19 +302,19 @@ function GameRoom({
           when={useUserContext()?.id.value() == activePlayerId()}
           // when={false}
           fallback={
-            <p class="text-yellow-500 font-laquer text-3xl text-center font-bold bg-red-500 p-1 self-center shadow-[10px_10px_0px_#000] after:content-[' '] after:h-full after:w-full after:top-0 after:left-0 after:absolute relative after:border-5 after:border-yellow-500">
+            <p class="text-yellow-500 font-laquer text-3xl text-center font-bold bg-red-500 p-1 self-center shadow-[10px_10px_0px_#000] after:content-[' '] after:h-full after:w-full after:top-0 after:left-0 after:absolute relative after:border-5 after:border-yellow-500 rounded after:rounded">
               {"_ ".repeat(selectedWord().length).trim()}
             </p>
           }
         >
-          <p class="text-yellow-500 font-laquer text-3xl px-10 py-2 text-center font-bold bg-red-500 p-1 self-center shadow-[10px_10px_0px_#000] after:content-[' '] after:h-full after:w-full after:top-0 after:left-0 after:absolute relative after:border-5 after:border-yellow-500">
+          <p class="text-yellow-500 font-laquer text-3xl px-10 py-2 text-center font-bold bg-red-500 p-1 self-center shadow-[10px_10px_0px_#000] after:content-[' '] after:h-full after:w-full after:top-0 after:left-0 after:absolute relative after:border-5 after:border-yellow-500 rounded after:rounded">
             {selectedWord()}
           </p>
         </Show>
         <canvas
           ref={canvasRef}
           class={[
-            "bg-white w-full rounded cursor-default border-bg-dark border ",
+            "bg-white w-full rounded cursor-default border-bg-dark border shadow-[10px_10px_0px_#000]",
             useUserContext()?.id.value() !== activePlayerId()
               ? "pointer-events-none"
               : "",
@@ -328,7 +331,7 @@ function GameRoom({
           fallback={<></>}
         >
           <ToolBox
-            class="bg-yellow-500 gap-10 shadow-[5px_5px_1px_#000] items-center font-bold py-2 px-5 flex"
+            class="bg-yellow-500 gap-10 shadow-[10px_10px_0px_#000] items-center font-bold py-2 px-5 flex rounded"
             colorSetter={colorSetter}
             undoHandler={undo}
             widthSetter={widthSetter}
@@ -338,7 +341,7 @@ function GameRoom({
         </Show>
       </div>
       <ChatBox
-        class="bg-orange-500 shadow-[5px_5px_2px_#000] w-full justify-self-end h-full font-bold border rounded border-bg-light grid grid-rows-[1fr_auto] min-h-0"
+        class="bg-orange-500 shadow-[10px_10px_0px_#000] w-full justify-self-end h-full font-bold border rounded border-bg-light grid grid-rows-[1fr_auto] min-h-0"
         messages={messages()}
         addMessage={addMessage}
       />

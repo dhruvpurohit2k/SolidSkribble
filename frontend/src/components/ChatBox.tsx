@@ -19,12 +19,12 @@ function ChatBox(props: ChatBoxProps) {
   return (
     <div class={props.class}>
       <div
-        class="flex flex-col gap-1 overflow-y-auto pt-5 min-h-0"
+        class="flex flex-col gap-1 overflow-y-auto py-5 min-h-0"
         ref={msgArea}
       >
         <For each={props.messages}>
           {(msg) => (
-            <div class="animate-[roll-in_1s_ease-in-out_both] font-marker text-yellow-500 text-xl bg-orange-700 p-2 rounded">
+            <div class="animate-[right-slide-in_150ms_ease-in-out_both] font-marker text-yellow-500 text-xl bg-orange-700 p-2 rounded">
               <p>{msg.senderName + " : " + msg.content}</p>
             </div>
           )}
