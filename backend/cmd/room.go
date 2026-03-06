@@ -40,6 +40,8 @@ const (
 	ROUNDSTARTSIGNAL
 	ROUNDENDSIGNAL
 	ROUNDCOUNT
+	GUESSWORD
+	INCREASEROUNDCOUNT
 )
 
 type Room struct {
@@ -64,6 +66,7 @@ type Room struct {
 	TokenToPlayerMap map[string]*Player
 	ScoreCard        map[string]ScoreInfo
 	NumRound         uint8
+	CurrentRoundTime uint8
 }
 
 // Adds Player to the room
@@ -139,8 +142,12 @@ func (r *Room) AddPlayer(conn *websocket.Conn) {
 // Update the newly Added player's game state
 func (r *Room) UpdateNewPlayer(newPlayer *Player) {
 	var leaderId, activePlayerId int
+	var currentTime, numRound uint8
 	r.mu.Lock()
 	canvasState, _ := json.Marshal(r.Canvas)
+	currentTime = r.CurrentRoundTime
+	numRound = r.NumRound
+
 	if r.Leader == nil {
 		leaderId = 0
 	} else {
@@ -163,6 +170,14 @@ func (r *Room) UpdateNewPlayer(newPlayer *Player) {
 	buffer = make([]byte, 2)
 	buffer[0] = byte(ACTIVEPLAYERCHANGE)
 	buffer[1] = byte(activePlayerId)
+	newPlayer.WriteBuffer <- buffer
+	buffer = make([]byte, 2)
+	buffer[0] = byte(ROUNDCOUNT)
+	buffer[1] = byte(numRound)
+	newPlayer.WriteBuffer <- buffer
+	buffer = make([]byte, 2)
+	buffer[0] = byte(ROUNDTIMESELECTION)
+	buffer[1] = byte(currentTime)
 	newPlayer.WriteBuffer <- buffer
 	CanvasBuffer := make([]byte, len(canvasState)+1)
 	CanvasBuffer[0] = byte(CANVASSTATE)
@@ -316,6 +331,7 @@ func (r *Room) PlayerListener(player *Player) {
 func (r *Room) ChangeRoundTime(p []byte) {
 	r.mu.Lock()
 	r.RoundTime = uint8(p[1])
+	r.CurrentRoundTime = r.RoundTime
 	for _, player := range r.Players {
 		player.WriteBuffer <- p
 	}
@@ -458,14 +474,12 @@ func (r *Room) broadcastChange(p []byte, sender *Player) {
 // Add Message
 func (r *Room) HandleUserMessage(p []byte, player *Player) {
 	jsonBytes := p[1:]
-	message := struct {
-		SenderName string `json:"senderName"`
-		Content    string `json:"content"`
-	}{}
+	message := Message{}
 	json.Unmarshal(jsonBytes, &message)
 	if strings.ToLower(message.Content) == strings.ToLower(r.CurrentWord) && !player.hasGuessed {
-		message.Content = "GUESSED"
+		message.Content = strings.Repeat("_", len(message.Content))
 		fmt.Println(player.Name, "GUSSED CORRECTLY")
+		message.IsGuess = true
 		r.mu.Lock()
 		r.ScoreCard[player.Name] = ScoreInfo{
 			PlayerName:  player.Name,
@@ -504,7 +518,9 @@ func (r *Room) Start() {
 //Round Logic
 
 func (r *Room) BeginGame() {
-	for i := 0; i <= 2; i++ {
+	for i := uint8(0); i < r.NumRound; i++ {
+		r.SendNotification(fmt.Sprintf("Round %d", i+1), "BEGINS", nil)
+		time.Sleep(4 * time.Second)
 		r.mu.Lock()
 		snapShot := make([]*Player, len(r.Players))
 		copy(snapShot, r.Players)
@@ -517,17 +533,18 @@ func (r *Room) BeginGame() {
 			}
 			r.ActivePlayer = player
 			r.ScoreCard = make(map[string]ScoreInfo, len(r.Players))
+			r.CurrentRoundTime = r.RoundTime
 			r.mu.Unlock()
 			r.sendActivePlayer()
-			r.SendNotification(r.ActivePlayer.Name, "is the active player", nil)
-			timer := time.After(3 * time.Second)
-			<-timer
-			r.SendNotification("", fmt.Sprintf("%s is choosing Word", r.ActivePlayer.Name), r.ActivePlayer)
+			r.SendNotification(fmt.Sprintf("%s's", r.ActivePlayer.Name), "TURN", nil)
+			time.Sleep(4 * time.Second)
+			r.SendNotification(r.ActivePlayer.Name, "IS CHOOSING A WORD", r.ActivePlayer)
 			r.AwaitWordSelection()
-			timer = time.After(time.Duration(r.RoundTime) * time.Second)
-			// fmt.Println("Waiting for ", r.RoundTime)
+			time.Sleep(4 * time.Second)
+			timer := time.After(time.Duration(r.RoundTime) * time.Second)
 			gussedPlayer := 0
 			go r.SendStartSignal()
+			go r.StartTimer()
 			select {
 			case <-timer:
 				r.ShowScore()
@@ -553,17 +570,55 @@ func (r *Room) BeginGame() {
 						PointsAdded: 0,
 					}
 				}
-
 			}
 			r.PlayerPoints = 10
 			r.mu.Unlock()
 			r.ShowScore()
-			timer = time.After(5 * time.Second)
-			<-timer
+
+			r.ResetCanvas()
+			time.Sleep(4 * time.Second)
 
 		}
+		r.IncreaseCurrentRoundSignal()
 	}
 	r.QuitChannel <- struct{}{}
+}
+func (r *Room) ResetCanvas() {
+	r.mu.Lock()
+	r.Canvas = Canvas{Strokes: make([]Stroke, 0, 20), CurrentColor: "#000000", CurrentWidth: 1}
+	canvasState, _ := json.Marshal(r.Canvas)
+	CanvasBuffer := make([]byte, len(canvasState)+1)
+	CanvasBuffer[0] = byte(CANVASSTATE)
+	copy(CanvasBuffer[1:], canvasState)
+	for _, player := range r.Players {
+		player.WriteBuffer <- CanvasBuffer
+	}
+	r.mu.Unlock()
+
+}
+func (r *Room) IncreaseCurrentRoundSignal() {
+	buffer := make([]byte, 1)
+	buffer[0] = byte(INCREASEROUNDCOUNT)
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, player := range r.Players {
+		player.WriteBuffer <- buffer
+	}
+}
+func (r *Room) StartTimer() {
+	elaspedTime := r.RoundTime
+	for elaspedTime > 0 {
+		buffer := make([]byte, 2)
+		buffer[0] = byte(ROUNDTIMESELECTION)
+		r.mu.Lock()
+		buffer[1] = elaspedTime
+		for _, player := range r.Players {
+			player.WriteBuffer <- buffer
+		}
+		elaspedTime--
+		r.mu.Unlock()
+		time.Sleep(1 * time.Second)
+	}
 }
 
 // func (r *Room) GuessListener(timer <-chan time.Time) {
@@ -605,6 +660,19 @@ func (r *Room) ShowScore() {
 }
 
 func (r *Room) AwaitWordSelection() {
+	notification := struct {
+		Heading string `json:"heading"`
+		Content string `json:"content"`
+	}{
+		Heading: "SELECT ONE WORD OF THE FOLLOWING",
+		Content: "",
+	}
+	notiPayload, _ := json.Marshal(notification)
+	notificationBuffer := make([]byte, len(notiPayload)+1)
+	notificationBuffer[0] = byte(NOTIFICATION)
+	copy(notificationBuffer[1:], notiPayload)
+	r.ActivePlayer.WriteBuffer <- notificationBuffer
+	time.Sleep(4 * time.Second)
 	words := make(map[string]struct{}, 3)
 	for len(words) < 3 {
 		index := rand.IntN(len(r.words))
@@ -625,11 +693,30 @@ func (r *Room) AwaitWordSelection() {
 	copy(buffer[1:], payload)
 	r.mu.Lock()
 	r.ActivePlayer.WriteBuffer <- buffer
-	r.mu.Unlock()
 	selectedWordIndex := <-r.wordSelectedChan
-	fmt.Println(selectedWordIndex)
 	r.CurrentWord = data.Words[int(selectedWordIndex)]
-	fmt.Println("Selected Word is ", r.CurrentWord)
+	r.mu.Unlock()
+	r.SendCurrentWord()
+}
+
+func (r *Room) SendCurrentWord() {
+	guessStr := []byte(strings.Repeat("_ ", len(r.CurrentWord)))
+	guessBuffer := make([]byte, len(guessStr)+1)
+	guessBuffer[0] = byte(GUESSWORD)
+	copy(guessBuffer[1:], guessStr)
+	drawWord := []byte(r.CurrentWord)
+	drawWordBuffer := make([]byte, len(drawWord)+1)
+	drawWordBuffer[0] = byte(GUESSWORD)
+	copy(drawWordBuffer[1:], drawWord)
+	r.mu.Lock()
+	for _, player := range r.Players {
+		if player.Id == r.ActivePlayer.Id {
+			player.WriteBuffer <- drawWordBuffer
+		} else {
+			player.WriteBuffer <- guessBuffer
+		}
+	}
+	r.mu.Unlock()
 }
 func (r *Room) SendNotification(heading string, content string, skipPlayer *Player) {
 	notification := struct {
@@ -680,6 +767,9 @@ func CreateRoom(words []string) *Room {
 		TokenToPlayerMap: make(map[string]*Player, 10),
 		PlayerGussed:     make(chan struct{}),
 		PlayerPoints:     10,
+		RoundTime:        60,
+		CurrentRoundTime: 60,
+		NumRound:         3,
 	}
 	return room
 }

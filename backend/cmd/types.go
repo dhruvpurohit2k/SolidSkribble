@@ -13,7 +13,7 @@ import (
 type Message struct {
 	SenderName string `json:"senderName"`
 	Content    string `json:"content"`
-	// Type    MessageType `json:"type"`
+	IsGuess    bool   `json:"isGuess"`
 }
 
 type Stroke struct {
