@@ -23,4 +23,5 @@ export enum WebSocketMessageType {
   ROUNDCOUNT,
   GUESSWORD,
   INCREASEROUNDCOUNT,
+  SHOWENDSCREEN,
 }

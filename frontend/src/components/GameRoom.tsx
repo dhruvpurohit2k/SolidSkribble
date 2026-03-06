@@ -280,10 +280,12 @@ function GameRoom({
           {(player, i) => (
             <div
               class={[
-                "text-black flex flex-col animate-[top-slide-in_1s_ease-in-out_both] p-2 items-center rounded font-marker text-xl shadow-[5px_5px_0px_#000]",
-                player.id === activePlayerId()
-                  ? "bg-orange-500"
-                  : "bg-orange-700",
+                " h-full flex flex-col animate-[top-slide-in_1s_ease-in-out_both] p-2 items-center rounded font-marker text-xl shadow-[5px_5px_0px_#000]",
+                player.inActive
+                  ? "bg-neutral-800 text-white"
+                  : player.id === activePlayerId()
+                    ? "bg-red-700 text-black border border-black"
+                    : "bg-orange-400 text-black",
               ].join(" ")}
               style={{
                 "animation-delay": `${i() * 500}ms`,
@@ -308,15 +310,15 @@ function GameRoom({
       </Show>
       <div class="relative col-start-1 flex flex-col gap-2 ">
         <div class="flex justify-around">
-          <div class=" text-2xl font-marker bg-orange-500 text-yellow-500 shadow-[10px_10px_0px_#000] items-center flex px-5 py-2 border border-black">
+          <div class=" text-2xl font-marker bg-orange-500 text-yellow-200 rounded shadow-[10px_10px_0px_#000] items-center flex px-5 py-2 border border-black">
             ROUND : {currentRound()} / {roundNumber()}
           </div>
           <Show when={selectedWord() !== ""}>
-            <p class="text-yellow-500 font-laquer text-3xl px-10 py-2 text-center font-bold bg-red-500 p-1 self-center shadow-[10px_10px_0px_#000] after:content-[' '] after:h-full after:w-full after:top-0 after:left-0 after:absolute relative after:border-5 after:border-yellow-500 rounded after:rounded">
+            <p class="text-yellow-500 font-marker text-3xl px-10 py-2 text-center font-bold bg-red-500 p-1 self-center shadow-[10px_10px_0px_#000] after:content-[' '] after:h-full after:w-full after:top-0 after:left-0 after:absolute relative after:border-5 after:border-yellow-500 rounded after:rounded">
               {selectedWord()}
             </p>
           </Show>
-          <div class=" text-xl relative font-marker bg-orange-500 text-yellow-500 shadow-[10px_10px_0px_#000] min-w-[12ch] items-center flex px-5 py-2 border border-black justify-center">
+          <div class=" text-xl relative font-marker bg-orange-500 text-yellow-200 rounded shadow-[10px_10px_0px_#000] min-w-[12ch] items-center flex px-5 py-2 border border-black justify-center">
             <p>TIMER : </p>
             <p class="ml-auto">{roundTime()}</p>
           </div>

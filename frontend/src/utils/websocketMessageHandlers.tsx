@@ -93,7 +93,6 @@ export function recieveNotification(
   const notification = JSON.parse(
     decoder.decode(payload.slice(1)),
   ) as Notification;
-  console.log(notification);
   notificationQueueSetter((oldNoti) => [...oldNoti, notification]);
 }
 export function recieveColor(
@@ -148,7 +147,6 @@ export function recieveRoundTime(
   setRoundTime: Setter<number>,
 ) {
   const dataview = new DataView(payload);
-  console.log(dataview.getUint8(1));
   setRoundTime(dataview.getUint8(1));
 }
 
@@ -170,7 +168,6 @@ export function recieveGuessWord(
   payload: ArrayBuffer,
   setSelectedWord: Setter<string>,
 ) {
-  console.log(decoder.decode(payload.slice(1)));
   setSelectedWord(decoder.decode(payload.slice(1)));
 }
 export function recieveNumberOfRounds(

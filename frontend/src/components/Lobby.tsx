@@ -15,7 +15,7 @@ function Lobby({
   const userContext = useUserContext();
   const navigator = useNavigate();
   return (
-    <div class="my-auto mx-auto relative gap-10 bg-yellow-500 p-10 rounded *:text-text-muted flex flex-col lg:flex-row w-[clamp(240px,50%,1000px)] shadow-[50px_40px_0px_10px_#000] after:content-[' '] after:h-full after:w-full after:scale-95 after:border-4 after:border-yellow-700 after:absolute after:top-0 after:left-0 after:rounded *:z-10 animate-[right-slide-in_1s_ease-in-out] duration-150ms relative">
+    <div class="my-auto mx-auto relative gap-10 bg-yellow-400 p-10 rounded *:text-text-muted flex flex-col lg:flex-row w-[clamp(240px,50%,1000px)] shadow-[50px_40px_0px_10px_#000] after:content-[' '] after:h-full after:w-full after:scale-95 after:border-4 after:border-yellow-200 after:absolute after:top-0 after:left-0 after:rounded *:z-10 animate-[right-slide-in_1s_ease-in-out] duration-150ms relative">
       <div class="flex flex-col max-h-100 ">
         <p class="text-center font-bold text-3xl mb-10 font-mono">
           PLAYERS IN THE LOBBY
@@ -24,7 +24,12 @@ function Lobby({
           <For each={playerList} fallback={<></>}>
             {(player, i) => (
               <div
-                class="flex px-10 py-2 items-center justify-between w-full bg-red-700 corner-scoop rounded-xl shadow-[10px_10px_0px_#000] animate-[right-slide-in_1s_cubic-bezier(0.175,0.885,0.32,1.075)_both]"
+                class={[
+                  "flex px-10 py-2 items-center justify-between w-full corner-scoop rounded-xl shadow-[10px_10px_0px_#000] animate-[right-slide-in_1s_cubic-bezier(0.175,0.885,0.32,1.075)_both]",
+                  player.inActive
+                    ? "bg-neutral-800 *:text-white"
+                    : " bg-red-700",
+                ].join(" ")}
                 style={{ "animation-delay": `${i() + 1}s` }}
               >
                 <p class="text-xl font-marker text-yellow-100 font-bold">
@@ -68,7 +73,7 @@ function Lobby({
             <p class="font-bold font-mono text-xl text-center">ROUND TIME</p>
             <div class="flex gap-2 items-center justify-center ">
               <button
-                class="bg-orange-500 shadow-[10px_10px_0px_#000] hover:bg-orange-700 hover:scale-95 hover:shadow-none py-1 px-4 font-bold bg-bg-light rounded text-xl active:bg-bg-dark duration-150"
+                class="bg-orange-500 shadow-[10px_10px_0px_#000] hover:bg-orange-700 text-orange-100 hover:scale-95 hover:shadow-none py-1 px-4 font-bold bg-bg-light rounded text-xl active:bg-bg-dark duration-150"
                 onClick={() =>
                   setRoundTime((rt) => {
                     if (rt == 15) return 15;
@@ -82,7 +87,7 @@ function Lobby({
                 {roundTime() + " sec"}
               </p>
               <button
-                class="bg-orange-500 shadow-[10px_10px_0px_#000] hover:bg-orange-700 hover:scale-95 hover:shadow-none py-1 px-3 font-bold bg-bg-light rounded text-xl active:bg-bg-dark duration-150"
+                class="bg-orange-500 shadow-[10px_10px_0px_#000] hover:bg-orange-700 hover:scale-95 text-orange-100 hover:shadow-none py-1 px-3 font-bold bg-bg-light rounded text-xl active:bg-bg-dark duration-150"
                 onClick={() =>
                   setRoundTime((rt) => {
                     if (rt == 180) return 180;
@@ -100,7 +105,7 @@ function Lobby({
             </p>
             <div class="flex gap-2 items-center justify-center ">
               <button
-                class="bg-orange-500 shadow-[10px_10px_0px_#000] hover:bg-orange-700 hover:scale-95 hover:shadow-none py-1 px-4 font-bold bg-bg-light rounded text-xl active:bg-bg-dark duration-150"
+                class="bg-orange-500 shadow-[10px_10px_0px_#000] text-orange-100  hover:bg-orange-700 hover:scale-95 hover:shadow-none py-1 px-4 font-bold bg-bg-light rounded text-xl active:bg-bg-dark duration-150"
                 onClick={() =>
                   setNumRounds((rt) => {
                     if (rt == 1) return 1;
@@ -114,7 +119,7 @@ function Lobby({
                 {numRounds() + " Rounds"}
               </p>
               <button
-                class="bg-orange-500 shadow-[10px_10px_0px_#000] hover:bg-orange-700 hover:scale-95 hover:shadow-none py-1 px-3 font-bold bg-bg-light rounded text-xl active:bg-bg-dark duration-150"
+                class="bg-orange-500 shadow-[10px_10px_0px_#000] text-orange-100 hover:bg-orange-700 hover:scale-95 hover:shadow-none py-1 px-3 font-bold bg-bg-light rounded text-xl active:bg-bg-dark duration-150"
                 onClick={() =>
                   setNumRounds((rt) => {
                     if (rt == 6) return 6;
@@ -151,7 +156,7 @@ function Lobby({
         </div>
       </Show>
       <button
-        class="absolute -bottom-25 rounded right-0 bg-orange-500 text-yellow-500 font-laquer text-xl px-5 py-2 shadow-[10px_10px_0px_#000] hover:scale-95 hover:bg-orange-700 hover:shadow-none duration-150"
+        class="absolute -bottom-25 rounded right-0 bg-orange-500 text-orange-100 font-bold text-xl px-5 py-2 shadow-[10px_10px_0px_#000] hover:scale-95 hover:bg-orange-700 hover:shadow-none duration-150"
         onClick={() => {
           navigator("/", { replace: true });
         }}

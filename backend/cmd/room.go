@@ -42,6 +42,7 @@ const (
 	ROUNDCOUNT
 	GUESSWORD
 	INCREASEROUNDCOUNT
+	SHOWENDSCREEN
 )
 
 type Room struct {
@@ -91,8 +92,8 @@ func (r *Room) AddPlayer(conn *websocket.Conn) {
 	r.mu.Lock()
 	if player, ok := r.TokenToPlayerMap[token]; ok {
 		player.Conn = conn
+		player.InActive = false
 		newPlayer = player
-		r.Players = append(r.Players, newPlayer)
 		// fmt.Printf("REPLACED OLD PLAYER %s WITHE NEW CONNECTION\n", player.Name)
 	} else {
 		username, err := r.GetUserName(conn)
@@ -159,6 +160,7 @@ func (r *Room) UpdateNewPlayer(newPlayer *Player) {
 		activePlayerId = r.ActivePlayer.Id
 	}
 	r.mu.Unlock()
+	r.SendCurrentWord()
 	buffer := make([]byte, 2)
 	buffer[0] = byte(GAMESTATE)
 	buffer[1] = byte(1)
@@ -240,23 +242,27 @@ func (r *Room) sendPlayerListUpdate() {
 func (r *Room) PlayerListener(player *Player) {
 	conn := player.Conn
 	defer func() {
+		player.InActive = true
+		r.sendPlayerListUpdate()
+		time.Sleep(30 * time.Second)
+		if !player.InActive {
+			return
+		}
 		r.mu.Lock()
-		isLeader := r.Leader != nil && r.Leader == player
-		updatePlayerList := make([]*Player, 0, max(len(r.Players)-1, 0))
-		for _, p := range r.Players {
-			if p.Id == player.Id {
-				continue
+		updatedList := make([]*Player, 0, len(r.Players)-1)
+		for _, oldPlayer := range r.Players {
+			if oldPlayer != player {
+				updatedList = append(updatedList, oldPlayer)
 			}
-			updatePlayerList = append(updatePlayerList, p)
 		}
-		if len(updatePlayerList) == 0 {
-			r.Leader = nil
-			r.ActivePlayer = nil
-		} else if isLeader {
-			r.Leader = updatePlayerList[0]
+		r.Players = updatedList
+		if r.Leader == player {
+			r.Leader = r.Players[0]
+			r.mu.Unlock()
+			r.sendLeader()
+			r.mu.Lock()
 		}
-		// fmt.Printf("PLAYER %s left, new list is %v\n", player.Name, updatePlayerList)
-		r.Players = updatePlayerList
+		delete(r.TokenToPlayerMap, player.token)
 		r.mu.Unlock()
 		r.sendPlayerListUpdate()
 	}()
@@ -534,6 +540,7 @@ func (r *Room) BeginGame() {
 			r.ActivePlayer = player
 			r.ScoreCard = make(map[string]ScoreInfo, len(r.Players))
 			r.CurrentRoundTime = r.RoundTime
+			r.ActivePlayer.Points += 5
 			r.mu.Unlock()
 			r.sendActivePlayer()
 			r.SendNotification(fmt.Sprintf("%s's", r.ActivePlayer.Name), "TURN", nil)
@@ -545,7 +552,8 @@ func (r *Room) BeginGame() {
 			go r.SendStartSignal()
 			timeOutChan := make(chan struct{})
 			stopTimer := make(chan struct{})
-			go r.StartTimer(timeOutChan, stopTimer)
+			skipped := make(chan struct{})
+			go r.StartTimer(timeOutChan, stopTimer, skipped)
 			select {
 			case <-timeOutChan:
 				fmt.Println("TIMER RAN OUT")
@@ -560,10 +568,24 @@ func (r *Room) BeginGame() {
 					break
 				}
 				r.mu.Unlock()
+			case <-skipped:
+				r.ResetCanvas()
+				r.SendNotification(r.ActivePlayer.Name, "didn't return. Skipping his turn", r.ActivePlayer)
+				r.PlayerPoints = 10
+				time.Sleep(4 * time.Second)
+				continue
 			}
 			r.mu.Lock()
+			r.ScoreCard[r.ActivePlayer.Name] = ScoreInfo{
+				PlayerName:  r.ActivePlayer.Name,
+				PointsAdded: 5,
+			}
+			r.ActivePlayer.Points += 5
 			for _, player := range r.Players {
 				player.hasGuessed = false
+				if player == r.ActivePlayer {
+					continue
+				}
 				if _, ok := r.ScoreCard[player.Name]; !ok {
 					r.ScoreCard[player.Name] = ScoreInfo{
 						PlayerName:  player.Name,
@@ -604,13 +626,34 @@ func (r *Room) IncreaseCurrentRoundSignal() {
 		player.WriteBuffer <- buffer
 	}
 }
-func (r *Room) StartTimer(timeOutChan chan struct{}, stopTimer chan struct{}) {
+func (r *Room) StartTimer(timeOutChan chan struct{}, stopTimer chan struct{}, skipped chan struct{}) {
 
 	elaspedTime := r.RoundTime
 	ticker := time.NewTicker(1 * time.Second)
+	waitTime := 20
 	for {
 		select {
 		case <-ticker.C:
+			r.mu.Lock()
+			if r.ActivePlayer.InActive {
+				if waitTime == 20 {
+					r.mu.Unlock()
+					r.SendNotification(r.ActivePlayer.Name, "has Disconnected. Wainting 20sec before skipping", r.ActivePlayer)
+					r.mu.Lock()
+				}
+				if waitTime > 0 {
+					waitTime--
+					fmt.Println("TIMER REDUCING TO ", waitTime)
+				} else {
+					r.mu.Unlock()
+					fmt.Println("LEAVING THE FUNCTION", waitTime)
+					close(skipped)
+					return
+				}
+				r.mu.Unlock()
+				continue
+			}
+			r.mu.Unlock()
 			buffer := make([]byte, 2)
 			buffer[0] = byte(ROUNDTIMESELECTION)
 			buffer[1] = byte(elaspedTime)
@@ -630,28 +673,6 @@ func (r *Room) StartTimer(timeOutChan chan struct{}, stopTimer chan struct{}) {
 	}
 }
 
-// func (r *Room) GuessListener(timer <-chan time.Time) {
-// 	// Using AllPlayerGuessed as make do channel to close the thread if timer runs out.
-// 	correctGuessCount := 0
-// 	allGussed := false
-// 	for range timer {
-// 		select {
-// 		case <-r.PlayerGussed:
-// 			correctGuessCount++
-// 			r.mu.Lock()
-// 			defer r.mu.Unlock()
-// 			if correctGuessCount >= len(r.Players)-1 {
-// 				allGussed = true
-// 				break
-// 			}
-// 		}
-// 	}
-// 	if allGussed {
-// 		r.AllPlayerGussed <- struct{}{}
-// 	}
-// 	return
-
-// }
 func (r *Room) ShowScore() {
 	r.mu.Lock()
 	defer r.mu.Unlock()

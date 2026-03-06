@@ -88,7 +88,6 @@ function Game() {
       const payloadType = payloadView.getUint8(0) as WebSocketMessageType;
       switch (payloadType) {
         case WebSocketMessageType.GAMESTATE:
-          console.log("GOT GAME STARTED PAYLOAD");
           if (payloadView.getUint8(1) === 1) {
             setGameStarted(true);
           }
@@ -132,12 +131,10 @@ function Game() {
         case WebSocketMessageType.LEADERCHANGE:
           const newLeaderId = payloadView.getUint8(1);
           setLeaderId(newLeaderId);
-          console.log("LeaderSet TO ", newLeaderId);
           break;
         case WebSocketMessageType.ACTIVEPLAYERCHANGE:
           const newActivePlayerId = payloadView.getUint8(1);
           setActivePlayerId(newActivePlayerId);
-          console.log("ActivePlayer set  TO ", newActivePlayerId);
           break;
         case WebSocketMessageType.NOTIFICATION:
           recieveNotification(payload, setNotificationQueue);
@@ -152,7 +149,7 @@ function Game() {
           connection()?.send(userContext?.username.value()!);
           break;
         case WebSocketMessageType.SERVERDENIED:
-          console.log("SERVER ERROR");
+          alert("SERVER ERROR");
           break;
         case WebSocketMessageType.SCOREBOARD:
           recieveScoreBoard(
@@ -216,14 +213,13 @@ function Game() {
     const view = new DataView(buffer);
     view.setUint8(0, WebSocketMessageType.WORDSELECTION);
     view.setUint8(1, index);
-    console.log(index);
     connection()!.send(buffer);
   }
   return (
     <div class="overflow-x-hidden h-full flex flex-col">
       <Show when={showNotificaiton()}>
         <NotificationComponenet
-          passedClass="z-100 flex flex-col absolute bg-red-700 right-[50%] top-[50%] -translate-y-[50%] shadow-[10px_10px_0px_#000] px-10 py-5 rounded-xl translate-x-[50%] animate-[notification-animation_4s_ease-in-out] border border-black"
+          passedClass="z-100 flex flex-col absolute bg-yellow-400 after:content-[' '] after:h-full after:w-full after:scale-95 after:border-2 after:border-yellow-200 after:absolute after:top-0 after:left-0 after:rounded-xl right-[50%] top-[50%] -translate-y-[50%] shadow-[10px_10px_0px_#000] px-10 py-5 rounded-xl translate-x-[50%] animate-[notification-animation_4s_ease-in-out] border border-black"
           notification={notification}
         />
       </Show>

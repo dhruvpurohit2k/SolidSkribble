@@ -26,6 +26,7 @@ export type Player = {
   name: string;
   id: number;
   points: number;
+  inActive: boolean;
 };
 
 export type Notification = {
