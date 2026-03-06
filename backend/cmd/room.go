@@ -257,10 +257,14 @@ func (r *Room) PlayerListener(player *Player) {
 		}
 		r.Players = updatedList
 		if r.Leader == player {
-			r.Leader = r.Players[0]
-			r.mu.Unlock()
-			r.sendLeader()
-			r.mu.Lock()
+			if len(r.Players) > 0 {
+				r.Leader = r.Players[0]
+				r.mu.Unlock()
+				r.sendLeader()
+				r.mu.Lock()
+			} else {
+				r.Leader = nil
+			}
 		}
 		delete(r.TokenToPlayerMap, player.token)
 		r.mu.Unlock()
@@ -525,6 +529,7 @@ func (r *Room) Start() {
 
 func (r *Room) BeginGame() {
 	for i := uint8(0); i < r.NumRound; i++ {
+		r.IncreaseCurrentRoundSignal()
 		r.SendNotification(fmt.Sprintf("Round %d", i+1), "BEGINS", nil)
 		time.Sleep(4 * time.Second)
 		r.mu.Lock()
@@ -540,7 +545,6 @@ func (r *Room) BeginGame() {
 			r.ActivePlayer = player
 			r.ScoreCard = make(map[string]ScoreInfo, len(r.Players))
 			r.CurrentRoundTime = r.RoundTime
-			r.ActivePlayer.Points += 5
 			r.mu.Unlock()
 			r.sendActivePlayer()
 			r.SendNotification(fmt.Sprintf("%s's", r.ActivePlayer.Name), "TURN", nil)
@@ -600,10 +604,21 @@ func (r *Room) BeginGame() {
 			time.Sleep(4 * time.Second)
 
 		}
-		r.IncreaseCurrentRoundSignal()
 	}
+	r.ShowEndScreen()
 	r.QuitChannel <- struct{}{}
 }
+
+func (r *Room) ShowEndScreen() {
+	buffer := make([]byte, 1)
+	buffer[0] = byte(SHOWENDSCREEN)
+	r.mu.Lock()
+	for _, player := range r.Players {
+		player.WriteBuffer <- buffer
+	}
+	r.mu.Unlock()
+}
+
 func (r *Room) ResetCanvas() {
 	r.mu.Lock()
 	r.Canvas = Canvas{Strokes: make([]Stroke, 0, 20), CurrentColor: "#000000", CurrentWidth: 1}

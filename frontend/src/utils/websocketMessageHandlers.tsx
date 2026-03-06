@@ -180,4 +180,7 @@ export function recieveNumberOfRounds(
 export function increaseCurrentRound(setCurrentRound: Setter<number>) {
   setCurrentRound((cr) => cr + 1);
 }
+export function endGameHandler(setShowEndScreen: Setter<boolean>) {
+  setShowEndScreen(true);
+}
 export function payloadHandler(data: any) {}

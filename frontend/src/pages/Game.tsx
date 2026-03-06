@@ -5,6 +5,7 @@ import { onMount } from "solid-js";
 import { useNavigate, useParams } from "@solidjs/router";
 import { UserContext, useUserContext } from "../context/UserContext";
 import {
+  endGameHandler,
   increaseCurrentRound,
   recieveGuessWord,
   recieveNotification,
@@ -23,6 +24,7 @@ import { onCleanup } from "solid-js";
 import ScoreBoard from "../components/ScoreBoard";
 import NotificationComponenet from "../components/Notification";
 import { createStore } from "solid-js/store";
+import EndScreen from "../components/EndScreen";
 function Game() {
   const [roundTime, setRoundTime] = createSignal<number>(60);
   const params = useParams();
@@ -46,7 +48,7 @@ function Game() {
     null,
   );
   const [numRounds, setNumRounds] = createSignal<number>(3);
-  const [currentRound, setCurrentRound] = createSignal<number>(1);
+  const [currentRound, setCurrentRound] = createSignal<number>(0);
   const [scoreBoard, setScoreBoard] = createSignal<Score[]>([]);
   const [showScoreBoard, setShowScoreBoard] = createSignal<boolean>(false);
   const [notificationQueue, setNotificationQueue] = createSignal<
@@ -54,6 +56,7 @@ function Game() {
   >([]);
   const [wordOptions, setWordOptions] = createSignal<string[]>([]);
   const [selectedWord, setSelectWord] = createSignal<string>("");
+  const [showEndScreen, setShowEndScreen] = createSignal<boolean>(false);
   const decoder = new TextDecoder("utf-8");
 
   createEffect(
@@ -174,6 +177,9 @@ function Game() {
         case WebSocketMessageType.INCREASEROUNDCOUNT:
           increaseCurrentRound(setCurrentRound);
           break;
+        case WebSocketMessageType.SHOWENDSCREEN:
+          endGameHandler(setShowEndScreen);
+          break;
         default:
           alert("NOT IMPLEMENTED PAYLOADTYPE " + payloadType);
       }
@@ -263,6 +269,9 @@ function Game() {
             currentRound={currentRound}
           />
         }
+      </Show>
+      <Show when={showEndScreen()}>
+        <EndScreen players={players} />
       </Show>
     </div>
   );
