@@ -3,11 +3,12 @@ import { Score, type Player } from "./types";
 import { Canvas, Stroke } from "../utils/types";
 import { useUserContext } from "../context/UserContext";
 import { Notification } from "./types";
+import { reconcile, SetStoreFunction } from "solid-js/store";
 
 const decoder = new TextDecoder("utf-8");
 export function updatePlayers(
   data: ArrayBuffer,
-  setter: Setter<Player[]>,
+  setter: SetStoreFunction<Player[]>,
   username: string,
   setId: Setter<number>,
 ) {
@@ -19,7 +20,7 @@ export function updatePlayers(
       setId(player.id);
     }
   }
-  setter(players);
+  setter(reconcile(players, { key: "id" }));
 }
 export function setCanvasState(
   payload: ArrayBuffer,
@@ -35,6 +36,7 @@ export function setCanvasState(
   setCurrentWidth(data.currentWidth);
   canvas.currentColor = data.currentColor;
   canvas.currentWidth = data.currentWidth;
+  canvas.strokes = [];
   data.strokes.forEach((stroke) => {
     canvas.strokes.push({
       coordinates: stroke.coordinates,
@@ -124,15 +126,21 @@ export function recieveScoreBoard(
   payload: ArrayBuffer,
   scoreBoard: Setter<Score[]>,
   showBoard: Setter<boolean>,
+  playerSetter: SetStoreFunction<Player[]>,
 ) {
   const scores = JSON.parse(decoder.decode(payload.slice(1))) as Score[];
-  console.log(scores);
+  scores.forEach((score) => {
+    playerSetter(
+      (p) => p.name === score.playerName,
+      "points",
+      (prevPoints) => prevPoints + score.pointsAdded,
+    );
+  });
   scoreBoard(scores);
   showBoard(true);
   setTimeout(() => {
     showBoard(false);
   }, 2500);
-  // console.log("GOT SCORES -> ", scores);
 }
 
 export function recieveRoundTime(
@@ -140,6 +148,7 @@ export function recieveRoundTime(
   setRoundTime: Setter<number>,
 ) {
   const dataview = new DataView(payload);
+  console.log(dataview.getUint8(1));
   setRoundTime(dataview.getUint8(1));
 }
 
@@ -147,15 +156,22 @@ export function startRound(
   roundTime: Accessor<number>,
   setRoundTime: Setter<number>,
 ) {
-  const interval = setInterval(() => {
-    setRoundTime((time) => {
-      if (time <= 0) return 0;
-      return time - 1;
-    });
-  }, 1000);
-  setTimeout(() => {
-    clearInterval(interval);
-  }, roundTime() * 1000);
+  // const interval = setInterval(() => {
+  //   setRoundTime((time) => {
+  //     if (time <= 0) return 0;
+  //     return time - 1;
+  //   });
+  // }, 1000);
+  // setTimeout(() => {
+  //   clearInterval(interval);
+  // }, roundTime() * 1000);
+}
+export function recieveGuessWord(
+  payload: ArrayBuffer,
+  setSelectedWord: Setter<string>,
+) {
+  console.log(decoder.decode(payload.slice(1)));
+  setSelectedWord(decoder.decode(payload.slice(1)));
 }
 export function recieveNumberOfRounds(
   payload: ArrayBuffer,
@@ -163,5 +179,8 @@ export function recieveNumberOfRounds(
 ) {
   const view = new DataView(payload);
   setNumRounds(view.getUint8(1));
+}
+export function increaseCurrentRound(setCurrentRound: Setter<number>) {
+  setCurrentRound((cr) => cr + 1);
 }
 export function payloadHandler(data: any) {}

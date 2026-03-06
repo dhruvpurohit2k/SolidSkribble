@@ -21,7 +21,7 @@ function Lobby({
           PLAYERS IN THE LOBBY
         </p>
         <div class="flex flex-col items-center px-5 p-2 gap-2 corner-scoop rounded-[20px]">
-          <For each={playerList()} fallback={<></>}>
+          <For each={playerList} fallback={<></>}>
             {(player, i) => (
               <div
                 class="flex px-10 py-2 items-center justify-between w-full bg-red-700 corner-scoop rounded-xl shadow-[10px_10px_0px_#000] animate-[right-slide-in_1s_cubic-bezier(0.175,0.885,0.32,1.075)_both]"
@@ -166,7 +166,7 @@ export default Lobby;
 
 type GameDataProps = {
   conn: Accessor<WebSocket | undefined>;
-  playerList: Accessor<Player[]>;
+  playerList: Player[];
   leaderId: Accessor<number>;
   roundTime: Accessor<number>;
   setRoundTime: Setter<number>;

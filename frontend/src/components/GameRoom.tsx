@@ -41,6 +41,7 @@ function GameRoom({
   selectedWord,
   roundTime,
   roundNumber,
+  currentRound,
 }: GameRoomProps) {
   const strokes: Stroke[] = [];
   const [currentColor, setCurrentColor] = createSignal<string>("#000000");
@@ -275,7 +276,7 @@ function GameRoom({
   return (
     <div class="mx-auto items-start grid p-2 grid-rows-[1fr_4fr_4fr] lg:grid-rows-[1fr_12fr] grid-cols-1 lg:grid-cols-[10fr_3fr] gap-2 h-full">
       <div class="bg-yellow-500 font-bold border p-1 flex items-start lg:col-span-2 rounded border-bg-light text-text-muted gap-1 shadow-[10px_10px_0px_#000]">
-        <For each={playerList()}>
+        <For each={playerList}>
           {(player, i) => (
             <div
               class={[
@@ -307,18 +308,10 @@ function GameRoom({
       </Show>
       <div class="relative col-start-1 flex flex-col gap-2 ">
         <div class="flex justify-around">
-          <div class=" text-xl font-marker bg-orange-500 text-yellow-500 shadow-[10px_10px_0px_#000] items-center flex px-5 py-2 border border-black">
-            ROUND : {roundNumber()}
+          <div class=" text-2xl font-marker bg-orange-500 text-yellow-500 shadow-[10px_10px_0px_#000] items-center flex px-5 py-2 border border-black">
+            ROUND : {currentRound()} / {roundNumber()}
           </div>
-          <Show
-            when={useUserContext()?.id.value() == activePlayerId()}
-            // when={false}
-            fallback={
-              <p class="text-yellow-500 font-laquer text-3xl text-center font-bold bg-red-500 p-1 self-center shadow-[10px_10px_0px_#000] after:content-[' '] after:h-full after:w-full after:top-0 after:left-0 after:absolute relative after:border-5 after:border-yellow-500 rounded after:rounded">
-                {"_ ".repeat(selectedWord().length).trim()}
-              </p>
-            }
-          >
+          <Show when={selectedWord() !== ""}>
             <p class="text-yellow-500 font-laquer text-3xl px-10 py-2 text-center font-bold bg-red-500 p-1 self-center shadow-[10px_10px_0px_#000] after:content-[' '] after:h-full after:w-full after:top-0 after:left-0 after:absolute relative after:border-5 after:border-yellow-500 rounded after:rounded">
               {selectedWord()}
             </p>
@@ -361,6 +354,7 @@ function GameRoom({
         class="bg-orange-500 shadow-[10px_10px_0px_#000] w-full justify-self-end h-full font-bold border rounded border-bg-light grid grid-rows-[1fr_auto] min-h-0"
         messages={messages()}
         addMessage={addMessage}
+        isActivePlayer={activePlayerId() === useUserContext()?.id.value()}
       />
     </div>
   );
@@ -369,7 +363,7 @@ export default GameRoom;
 
 type GameRoomProps = {
   connection: Accessor<WebSocket | undefined>;
-  playerList: Accessor<Player[]>;
+  playerList: Player[];
   canvasInputData: Accessor<ArrayBuffer | null>;
   canvasStateData: Accessor<ArrayBuffer | null>;
   undoSignal: Accessor<number>;
@@ -383,4 +377,5 @@ type GameRoomProps = {
   acceptWord: (index: number) => void;
   roundTime: Accessor<number>;
   roundNumber: Accessor<number>;
+  currentRound: Accessor<number>;
 };

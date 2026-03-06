@@ -5,6 +5,8 @@ import { onMount } from "solid-js";
 import { useNavigate, useParams } from "@solidjs/router";
 import { UserContext, useUserContext } from "../context/UserContext";
 import {
+  increaseCurrentRound,
+  recieveGuessWord,
   recieveNotification,
   recieveNumberOfRounds,
   recieveRoundTime,
@@ -20,13 +22,14 @@ import { sleep } from "../utils/sleep";
 import { onCleanup } from "solid-js";
 import ScoreBoard from "../components/ScoreBoard";
 import NotificationComponenet from "../components/Notification";
+import { createStore } from "solid-js/store";
 function Game() {
   const [roundTime, setRoundTime] = createSignal<number>(60);
   const params = useParams();
   const navigate = useNavigate();
   const userContext = useUserContext();
   const [gameStarted, setGameStarted] = createSignal<boolean>(false);
-  const [players, setPlayers] = createSignal<Player[]>([]);
+  const [players, setPlayers] = createStore<Player[]>([]);
   const [connection, setConnection] = createSignal<WebSocket>();
   const [messages, setMessages] = createSignal<Message[]>([]);
   const [showNotificaiton, setShowNotification] = createSignal<boolean>(false);
@@ -43,6 +46,7 @@ function Game() {
     null,
   );
   const [numRounds, setNumRounds] = createSignal<number>(3);
+  const [currentRound, setCurrentRound] = createSignal<number>(1);
   const [scoreBoard, setScoreBoard] = createSignal<Score[]>([]);
   const [showScoreBoard, setShowScoreBoard] = createSignal<boolean>(false);
   const [notificationQueue, setNotificationQueue] = createSignal<
@@ -63,9 +67,10 @@ function Game() {
         while (notificationQueue().length > 0) {
           noti = notificationQueue()[0];
           setNotification(noti);
-          await sleep(4000);
+          await sleep(3000);
           setNotificationQueue((prevQueue) => prevQueue.slice(1));
           count++;
+          await sleep(1000);
         }
         setShowNotification(false);
       },
@@ -150,7 +155,12 @@ function Game() {
           console.log("SERVER ERROR");
           break;
         case WebSocketMessageType.SCOREBOARD:
-          recieveScoreBoard(payload, setScoreBoard, setShowScoreBoard);
+          recieveScoreBoard(
+            payload,
+            setScoreBoard,
+            setShowScoreBoard,
+            setPlayers,
+          );
           break;
         case WebSocketMessageType.ROUNDTIMESELECTION:
           recieveRoundTime(payload, setRoundTime);
@@ -160,6 +170,12 @@ function Game() {
           break;
         case WebSocketMessageType.ROUNDCOUNT:
           recieveNumberOfRounds(payload, setNumRounds);
+          break;
+        case WebSocketMessageType.GUESSWORD:
+          recieveGuessWord(payload, setSelectWord);
+          break;
+        case WebSocketMessageType.INCREASEROUNDCOUNT:
+          increaseCurrentRound(setCurrentRound);
           break;
         default:
           alert("NOT IMPLEMENTED PAYLOADTYPE " + payloadType);
@@ -196,7 +212,6 @@ function Game() {
     connection()?.send(buffer);
   }
   function acceptWord(index: number) {
-    setSelectWord(wordOptions()[index]);
     const buffer = new ArrayBuffer(2);
     const view = new DataView(buffer);
     view.setUint8(0, WebSocketMessageType.WORDSELECTION);
@@ -249,6 +264,7 @@ function Game() {
             acceptWord={acceptWord}
             roundTime={roundTime}
             roundNumber={numRounds}
+            currentRound={currentRound}
           />
         }
       </Show>

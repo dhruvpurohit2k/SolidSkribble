@@ -19,6 +19,7 @@ export enum MouseEventType {
 export type Message = {
   senderName: string;
   content: string;
+  isGuess: boolean;
 };
 
 export type Player = {
