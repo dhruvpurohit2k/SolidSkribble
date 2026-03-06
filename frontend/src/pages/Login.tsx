@@ -7,6 +7,7 @@ function Login() {
   const userContext = useUserContext();
   if (userContext === undefined) return;
   const username = userContext.username.value;
+  const [joinLink, setJoinLink] = createSignal<string>("");
   const setUserName = userContext.username.set;
   if (username() !== "") setSubmitted(true);
 
@@ -99,9 +100,18 @@ function Login() {
               <p class="text-3xl text-center font-bold font-mono ">Join Room</p>
               <input
                 type="text"
+                value={joinLink()}
+                placeholder="ROOM CODE"
+                onChange={(e) => setJoinLink(e.target.value)}
                 class="bg-yellow-200 text-center rounded w-full outline-none text-lg px-2 py-1 shadow-[10px_10px_0px_#000]"
               />
-              <button class="shadow-[10px_10px_0px_#000] hover:shadow-none hover:scale-95 lg:row-start-3 bg-orange-400 text-white font-bold font-mono text-3xl rounded mx-auto p-2 hover:bg-bg-dark duration-150 cursor-pointer hover:bg-orange-800">
+              <button
+                class="font-marker shadow-[10px_10px_0px_#000] hover:shadow-none hover:scale-95 lg:row-start-3 bg-orange-400 text-white font-bold text-3xl rounded mx-auto p-2 hover:bg-bg-dark duration-150 cursor-pointer hover:bg-orange-800"
+                onClick={() => {
+                  if (joinLink().trim() == "") alert("Enter a room code");
+                  navigate(`/game/${joinLink().trim()}`, { replace: true });
+                }}
+              >
                 JOIN
               </button>
             </div>

@@ -34,11 +34,12 @@ type Player struct {
 	Id          int             `json:"id"`
 	Points      int             `json:"points"`
 	WriteBuffer chan []byte     `json:"-"`
-	token       string
+	Token       string          `json:"token"`
 	hasGuessed  bool
 	InActive    bool `json:"inActive"`
 }
 type ScoreInfo struct {
 	PlayerName  string `json:"playerName"`
 	PointsAdded int    `json:"pointsAdded"`
+	Token       string `json:"token"`
 }

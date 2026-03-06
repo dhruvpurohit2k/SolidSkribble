@@ -117,7 +117,7 @@ func (r *Room) AddPlayer(conn *websocket.Conn) {
 			Conn:        conn,
 			Id:          r.idCounter + 1,
 			WriteBuffer: make(chan []byte),
-			token:       token,
+			Token:       token,
 		}
 		r.TokenToPlayerMap[token] = newPlayer
 		// fmt.Printf("ADDED NEW PLAYER WITH NAME %s and TOKEN %s\n", newPlayer.Name, newPlayer.token)
@@ -249,7 +249,7 @@ func (r *Room) PlayerListener(player *Player) {
 			return
 		}
 		r.mu.Lock()
-		updatedList := make([]*Player, 0, len(r.Players)-1)
+		updatedList := make([]*Player, 0, max(len(r.Players)-1, 0))
 		for _, oldPlayer := range r.Players {
 			if oldPlayer != player {
 				updatedList = append(updatedList, oldPlayer)
@@ -266,7 +266,7 @@ func (r *Room) PlayerListener(player *Player) {
 				r.Leader = nil
 			}
 		}
-		delete(r.TokenToPlayerMap, player.token)
+		delete(r.TokenToPlayerMap, player.Token)
 		r.mu.Unlock()
 		r.sendPlayerListUpdate()
 	}()
@@ -283,6 +283,10 @@ func (r *Room) PlayerListener(player *Player) {
 		case GAMESTATE:
 
 			if player.Id != r.Leader.Id {
+				continue
+			}
+			if len(r.Players) < 2 {
+				r.SendNotification("Need at least 2 players to play", "", nil)
 				continue
 			}
 			go r.broadcastGameUpdate(p)
@@ -488,12 +492,12 @@ func (r *Room) HandleUserMessage(p []byte, player *Player) {
 	json.Unmarshal(jsonBytes, &message)
 	if strings.ToLower(message.Content) == strings.ToLower(r.CurrentWord) && !player.hasGuessed {
 		message.Content = strings.Repeat("_", len(message.Content))
-		fmt.Println(player.Name, "GUSSED CORRECTLY")
 		message.IsGuess = true
 		r.mu.Lock()
-		r.ScoreCard[player.Name] = ScoreInfo{
+		r.ScoreCard[player.Token] = ScoreInfo{
 			PlayerName:  player.Name,
 			PointsAdded: r.PlayerPoints,
+			Token:       player.Token,
 		}
 		player.Points = player.Points + r.PlayerPoints
 		r.PlayerPoints = max(int(math.Round(float64(r.PlayerPoints)*0.8)), 1)
@@ -547,6 +551,7 @@ func (r *Room) BeginGame() {
 			r.CurrentRoundTime = r.RoundTime
 			r.mu.Unlock()
 			r.sendActivePlayer()
+			r.ResetCanvas()
 			r.SendNotification(fmt.Sprintf("%s's", r.ActivePlayer.Name), "TURN", nil)
 			time.Sleep(4 * time.Second)
 			r.SendNotification(r.ActivePlayer.Name, "IS CHOOSING A WORD", r.ActivePlayer)
@@ -573,16 +578,16 @@ func (r *Room) BeginGame() {
 				}
 				r.mu.Unlock()
 			case <-skipped:
-				r.ResetCanvas()
 				r.SendNotification(r.ActivePlayer.Name, "didn't return. Skipping his turn", r.ActivePlayer)
 				r.PlayerPoints = 10
 				time.Sleep(4 * time.Second)
 				continue
 			}
 			r.mu.Lock()
-			r.ScoreCard[r.ActivePlayer.Name] = ScoreInfo{
+			r.ScoreCard[r.ActivePlayer.Token] = ScoreInfo{
 				PlayerName:  r.ActivePlayer.Name,
 				PointsAdded: 5,
+				Token:       r.ActivePlayer.Token,
 			}
 			r.ActivePlayer.Points += 5
 			for _, player := range r.Players {
@@ -590,21 +595,23 @@ func (r *Room) BeginGame() {
 				if player == r.ActivePlayer {
 					continue
 				}
-				if _, ok := r.ScoreCard[player.Name]; !ok {
-					r.ScoreCard[player.Name] = ScoreInfo{
+				if _, ok := r.ScoreCard[player.Token]; !ok {
+					r.ScoreCard[player.Token] = ScoreInfo{
 						PlayerName:  player.Name,
 						PointsAdded: 0,
+						Token:       player.Token,
 					}
 				}
 			}
 			r.PlayerPoints = 10
 			r.mu.Unlock()
 			r.ShowScore()
-			r.ResetCanvas()
 			time.Sleep(4 * time.Second)
 
 		}
 	}
+	r.SendNotification("GAME END", "Thank you for playing", nil)
+	time.Sleep(4 * time.Second)
 	r.ShowEndScreen()
 	r.QuitChannel <- struct{}{}
 }
@@ -709,7 +716,7 @@ func (r *Room) AwaitWordSelection() {
 		Heading string `json:"heading"`
 		Content string `json:"content"`
 	}{
-		Heading: "SELECT ONE WORD OF THE FOLLOWING",
+		Heading: "SELECT ONE WORD OUT OF THE FOLLOWING",
 		Content: "",
 	}
 	notiPayload, _ := json.Marshal(notification)

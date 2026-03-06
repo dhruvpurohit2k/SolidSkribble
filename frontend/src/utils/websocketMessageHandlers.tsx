@@ -9,14 +9,14 @@ const decoder = new TextDecoder("utf-8");
 export function updatePlayers(
   data: ArrayBuffer,
   setter: SetStoreFunction<Player[]>,
-  username: string,
+  token: string,
   setId: Setter<number>,
 ) {
   const jsonBuffer = data.slice(1);
   const jsonString = decoder.decode(jsonBuffer);
   const players = JSON.parse(jsonString) as Player[];
   for (const player of players) {
-    if (username === player.name) {
+    if (token === player.token) {
       setId(player.id);
     }
   }
@@ -130,7 +130,7 @@ export function recieveScoreBoard(
   const scores = JSON.parse(decoder.decode(payload.slice(1))) as Score[];
   scores.forEach((score) => {
     playerSetter(
-      (p) => p.name === score.playerName,
+      (p) => p.token === score.token,
       "points",
       (prevPoints) => prevPoints + score.pointsAdded,
     );

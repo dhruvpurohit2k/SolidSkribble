@@ -57,6 +57,7 @@ function Game() {
   const [wordOptions, setWordOptions] = createSignal<string[]>([]);
   const [selectedWord, setSelectWord] = createSignal<string>("");
   const [showEndScreen, setShowEndScreen] = createSignal<boolean>(false);
+  const roomId = params.id;
   const decoder = new TextDecoder("utf-8");
 
   createEffect(
@@ -99,7 +100,7 @@ function Game() {
           updatePlayers(
             payload,
             setPlayers,
-            userContext!.username.value(),
+            userContext!.token.value(),
             userContext!.id.set,
           );
           break;
@@ -246,6 +247,7 @@ function Game() {
             setRoundTime={setRoundTime}
             numRounds={numRounds}
             setNumRounds={setNumRounds}
+            roomId={roomId!}
           />
         }
       >

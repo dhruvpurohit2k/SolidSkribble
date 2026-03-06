@@ -27,6 +27,7 @@ export type Player = {
   id: number;
   points: number;
   inActive: boolean;
+  token: string;
 };
 
 export type Notification = {
@@ -37,4 +38,5 @@ export type Notification = {
 export type Score = {
   playerName: string;
   pointsAdded: number;
+  token: string;
 };

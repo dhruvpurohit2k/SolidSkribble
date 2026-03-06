@@ -11,16 +11,17 @@ function Lobby({
   setRoundTime,
   numRounds,
   setNumRounds,
+  roomId,
 }: GameDataProps) {
   const userContext = useUserContext();
-  const navigator = useNavigate();
+  const nav = useNavigate();
   return (
     <div class="my-auto mx-auto relative gap-10 bg-yellow-400 p-10 rounded *:text-text-muted flex flex-col lg:flex-row w-[clamp(240px,50%,1000px)] shadow-[50px_40px_0px_10px_#000] after:content-[' '] after:h-full after:w-full after:scale-95 after:border-4 after:border-yellow-200 after:absolute after:top-0 after:left-0 after:rounded *:z-10 animate-[right-slide-in_1s_ease-in-out] duration-150ms relative">
       <div class="flex flex-col max-h-100 ">
         <p class="text-center font-bold text-3xl mb-10 font-mono">
           PLAYERS IN THE LOBBY
         </p>
-        <div class="flex flex-col items-center px-5 p-2 gap-2 corner-scoop rounded-[20px]">
+        <div class="flex mb-10 flex-col items-center px-5 p-2 gap-2 corner-scoop rounded-[20px]">
           <For each={playerList} fallback={<></>}>
             {(player, i) => (
               <div
@@ -56,6 +57,12 @@ function Lobby({
             )}
           </For>
         </div>
+        <button
+          class="p-1 bg-orange-500 text-orange-100 text-sm duration-150 hover:shadow-none hover:scale-95 hover:bg-orange-700 mt-auto self-center shadow-[10px_10px_0px_#000] rounded"
+          onClick={() => navigator.clipboard.writeText(roomId)}
+        >
+          COPY LINK
+        </button>
       </div>
       <Show
         when={userContext?.id.value() === leaderId()}
@@ -158,7 +165,7 @@ function Lobby({
       <button
         class="absolute -bottom-25 rounded right-0 bg-orange-500 text-orange-100 font-bold text-xl px-5 py-2 shadow-[10px_10px_0px_#000] hover:scale-95 hover:bg-orange-700 hover:shadow-none duration-150"
         onClick={() => {
-          navigator("/", { replace: true });
+          nav("/", { replace: true });
         }}
       >
         BACK
@@ -177,4 +184,5 @@ type GameDataProps = {
   setRoundTime: Setter<number>;
   numRounds: Accessor<number>;
   setNumRounds: Setter<number>;
+  roomId: string;
 };
