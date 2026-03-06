@@ -541,25 +541,25 @@ func (r *Room) BeginGame() {
 			r.SendNotification(r.ActivePlayer.Name, "IS CHOOSING A WORD", r.ActivePlayer)
 			r.AwaitWordSelection()
 			time.Sleep(4 * time.Second)
-			timer := time.After(time.Duration(r.RoundTime) * time.Second)
 			gussedPlayer := 0
 			go r.SendStartSignal()
-			go r.StartTimer()
+			timeOutChan := make(chan struct{})
+			stopTimer := make(chan struct{})
+			go r.StartTimer(timeOutChan, stopTimer)
 			select {
-			case <-timer:
-				r.ShowScore()
+			case <-timeOutChan:
 				fmt.Println("TIMER RAN OUT")
 			case <-r.PlayerGussed:
 				fmt.Println("ONE PLAYER GUSSED CORRECTLY")
 				gussedPlayer++
 				r.mu.Lock()
 				if gussedPlayer >= len(r.Players)-1 {
+					close(stopTimer)
 					fmt.Println("ALL PLAYER GUSSED CORRECTLY")
 					r.mu.Unlock()
 					break
 				}
 				r.mu.Unlock()
-
 			}
 			r.mu.Lock()
 			for _, player := range r.Players {
@@ -574,7 +574,6 @@ func (r *Room) BeginGame() {
 			r.PlayerPoints = 10
 			r.mu.Unlock()
 			r.ShowScore()
-
 			r.ResetCanvas()
 			time.Sleep(4 * time.Second)
 
@@ -605,19 +604,29 @@ func (r *Room) IncreaseCurrentRoundSignal() {
 		player.WriteBuffer <- buffer
 	}
 }
-func (r *Room) StartTimer() {
+func (r *Room) StartTimer(timeOutChan chan struct{}, stopTimer chan struct{}) {
+
 	elaspedTime := r.RoundTime
-	for elaspedTime > 0 {
-		buffer := make([]byte, 2)
-		buffer[0] = byte(ROUNDTIMESELECTION)
-		r.mu.Lock()
-		buffer[1] = elaspedTime
-		for _, player := range r.Players {
-			player.WriteBuffer <- buffer
+	ticker := time.NewTicker(1 * time.Second)
+	for {
+		select {
+		case <-ticker.C:
+			buffer := make([]byte, 2)
+			buffer[0] = byte(ROUNDTIMESELECTION)
+			buffer[1] = byte(elaspedTime)
+			r.mu.Lock()
+			for _, player := range r.Players {
+				player.WriteBuffer <- buffer
+			}
+			r.mu.Unlock()
+			elaspedTime--
+			if elaspedTime == 0 {
+				close(timeOutChan)
+				return
+			}
+		case <-stopTimer:
+			return
 		}
-		elaspedTime--
-		r.mu.Unlock()
-		time.Sleep(1 * time.Second)
 	}
 }
 

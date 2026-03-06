@@ -36,6 +36,7 @@ type Player struct {
 	WriteBuffer chan []byte     `json:"-"`
 	token       string
 	hasGuessed  bool
+	inActive    bool
 }
 type ScoreInfo struct {
 	PlayerName  string `json:"playerName"`
