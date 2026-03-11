@@ -47,7 +47,7 @@ func (r *Room) BeginGame() {
 			r.SendNotification(r.ActivePlayer.Name, "IS CHOOSING A WORD", r.ActivePlayer)
 			r.AwaitWordSelection()
 			time.Sleep(4 * time.Second)
-			gussedPlayer := 0
+			guessedPlayer := 0
 			go r.SendStartSignal()
 			timeOutChan := make(chan struct{})
 			stopTimer := make(chan struct{})
@@ -55,10 +55,10 @@ func (r *Room) BeginGame() {
 			go r.StartTimer(timeOutChan, stopTimer, skipped)
 			select {
 			case <-timeOutChan:
-			case <-r.PlayerGussed:
-				gussedPlayer++
+			case <-r.PlayerGuessed:
+				guessedPlayer++
 				r.mu.Lock()
-				if gussedPlayer >= len(r.Players)-1 {
+				if guessedPlayer >= len(r.Players)-1 {
 					close(stopTimer)
 					r.mu.Unlock()
 					break
@@ -125,7 +125,7 @@ func (r *Room) IncreaseCurrentRoundSignal() {
 
 func (r *Room) StartTimer(timeOutChan chan struct{}, stopTimer chan struct{}, skipped chan struct{}) {
 
-	elaspedTime := r.RoundTime
+	elapsedTime := r.RoundTime
 	ticker := time.NewTicker(1 * time.Second)
 	waitTime := 20
 	for {
@@ -135,20 +135,13 @@ func (r *Room) StartTimer(timeOutChan chan struct{}, stopTimer chan struct{}, sk
 			if r.ActivePlayer.InActive {
 				if waitTime == 20 {
 					r.mu.Unlock()
-					r.SendNotification(r.ActivePlayer.Name, "has Disconnected. Wainting 20sec before skipping", r.ActivePlayer)
+					r.SendNotification(r.ActivePlayer.Name, "has Disconnected. Waiting 20sec before skipping", r.ActivePlayer)
 					r.mu.Lock()
 				}
 				if waitTime > 0 {
 					waitTime--
-<<<<<<< HEAD
-					fmt.Println("TIMER REDUCING TO ", waitTime)
 				} else {
 					r.mu.Unlock()
-					fmt.Println("LEAVING THE FUNCTION", waitTime)
-=======
-				} else {
-					r.mu.Unlock()
->>>>>>> cbb6e35 (Refactor backend code into smaller files.)
 					close(skipped)
 					return
 				}
@@ -158,14 +151,14 @@ func (r *Room) StartTimer(timeOutChan chan struct{}, stopTimer chan struct{}, sk
 			r.mu.Unlock()
 			buffer := make([]byte, 2)
 			buffer[0] = byte(ROUNDTIMESELECTION)
-			buffer[1] = byte(elaspedTime)
+			buffer[1] = byte(elapsedTime)
 			r.mu.Lock()
 			for _, player := range r.Players {
 				player.WriteBuffer <- buffer
 			}
 			r.mu.Unlock()
-			elaspedTime--
-			if elaspedTime == 0 {
+			elapsedTime--
+			if elapsedTime == 0 {
 				close(timeOutChan)
 				return
 			}

@@ -7,12 +7,12 @@ import { UserContext, useUserContext } from "../context/UserContext";
 import {
   endGameHandler,
   increaseCurrentRound,
-  recieveGuessWord,
-  recieveNotification,
-  recieveNumberOfRounds,
-  recieveRoundTime,
-  recieveScoreBoard,
-  recieveWords,
+  receiveGuessWord,
+  receiveNotification,
+  receiveNumberOfRounds,
+  receiveRoundTime,
+  receiveScoreBoard,
+  receiveWords,
   startRound,
   updatePlayers,
 } from "../utils/websocketMessageHandlers";
@@ -22,7 +22,7 @@ import { Notification } from "../utils/types";
 import { sleep } from "../utils/sleep";
 import { onCleanup } from "solid-js";
 import ScoreBoard from "../components/ScoreBoard";
-import NotificationComponenet from "../components/Notification";
+import NotificationComponent from "../components/Notification";
 import { createStore } from "solid-js/store";
 import EndScreen from "../components/EndScreen";
 function Game() {
@@ -141,10 +141,10 @@ function Game() {
           setActivePlayerId(newActivePlayerId);
           break;
         case WebSocketMessageType.NOTIFICATION:
-          recieveNotification(payload, setNotificationQueue);
+          receiveNotification(payload, setNotificationQueue);
           break;
         case WebSocketMessageType.WORDSELECTION:
-          recieveWords(payload, setWordOptions);
+          receiveWords(payload, setWordOptions);
           break;
         case WebSocketMessageType.REQUESTTOKEN:
           connection()?.send(userContext?.token.value()!);
@@ -156,7 +156,7 @@ function Game() {
           alert("SERVER ERROR");
           break;
         case WebSocketMessageType.SCOREBOARD:
-          recieveScoreBoard(
+          receiveScoreBoard(
             payload,
             setScoreBoard,
             setShowScoreBoard,
@@ -164,16 +164,16 @@ function Game() {
           );
           break;
         case WebSocketMessageType.ROUNDTIMESELECTION:
-          recieveRoundTime(payload, setRoundTime);
+          receiveRoundTime(payload, setRoundTime);
           break;
         case WebSocketMessageType.ROUNDSTARTSIGNAL:
           startRound(roundTime, setRoundTime);
           break;
         case WebSocketMessageType.ROUNDCOUNT:
-          recieveNumberOfRounds(payload, setNumRounds);
+          receiveNumberOfRounds(payload, setNumRounds);
           break;
         case WebSocketMessageType.GUESSWORD:
-          recieveGuessWord(payload, setSelectWord);
+          receiveGuessWord(payload, setSelectWord);
           break;
         case WebSocketMessageType.INCREASEROUNDCOUNT:
           increaseCurrentRound(setCurrentRound);
@@ -225,7 +225,7 @@ function Game() {
   return (
     <div class="overflow-x-hidden h-full flex flex-col">
       <Show when={showNotificaiton()}>
-        <NotificationComponenet
+        <NotificationComponent
           passedClass="z-100 flex flex-col absolute bg-yellow-400 after:content-[' '] after:h-full after:w-full after:scale-95 after:border-2 after:border-yellow-200 after:absolute after:top-0 after:left-0 after:rounded-xl right-[50%] top-[50%] -translate-y-[50%] shadow-[10px_10px_0px_#000] px-10 py-5 rounded-xl translate-x-[50%] animate-[notification-animation_4s_ease-in-out] border border-black"
           notification={notification}
         />

@@ -12,10 +12,10 @@ import { type Player } from "../utils/types";
 import { WebSocketMessageType } from "../utils/websocketMessageType";
 import { createEffect } from "solid-js";
 import {
-  recieveCanvasInput,
-  recieveColor,
-  recieveUndo,
-  recieveStrokeWidth,
+  receiveCanvasInput,
+  receiveColor,
+  receiveUndo,
+  receiveStrokeWidth,
   setCanvasState,
 } from "../utils/websocketMessageHandlers";
 import ChatBox from "./ChatBox";
@@ -67,7 +67,7 @@ function GameRoom({
   createEffect(() => {
     if (canvasInputData() === null) return;
     canvasInputData();
-    recieveCanvasInput(canvasInputData()!, canvas, ctx);
+    receiveCanvasInput(canvasInputData()!, canvas, ctx);
   });
   createEffect(() => {
     if (canvasStateData() === null) return;
@@ -107,21 +107,21 @@ function GameRoom({
     on(
       colorSignal,
       () => {
-        recieveColor(colorSignal()!, canvas, setCurrentColor);
+        receiveColor(colorSignal()!, canvas, setCurrentColor);
       },
       { defer: true },
     ),
   );
   createEffect(
     on(widthSignal, () => {
-      recieveStrokeWidth(widthSignal()!, canvas, setCurrentWidth);
+      receiveStrokeWidth(widthSignal()!, canvas, setCurrentWidth);
     }),
   );
   createEffect(
     on(
       undoSignal,
       () => {
-        recieveUndo(canvas, redraw);
+        receiveUndo(canvas, redraw);
       },
       { defer: true },
     ),

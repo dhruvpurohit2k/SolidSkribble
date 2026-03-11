@@ -26,7 +26,7 @@ func main() {
 		"Marshmallow", "Sushi", "Cowboy", "Pirate", "Cactus", "Spacecraft", "Microscope", "Telescope", "Pineapple", "Submarine",
 	}
 	server := createServer(skribblWords)
-	middlesware := setupMiddleWares(enableCORS)
+	middleware := setupMiddleWares(enableCORS)
 	fmt.Println("Listening to port 5000....")
-	http.ListenAndServe(":5000", middlesware(server))
+	http.ListenAndServe(":5000", middleware(server))
 }

@@ -1,6 +1,6 @@
 import { Accessor } from "solid-js";
 import { Notification } from "../utils/types";
-function NotificationComponenet({
+function NotificationComponent({
   passedClass,
   notification,
 }: NotificationProps) {
@@ -14,7 +14,7 @@ function NotificationComponenet({
   );
 }
 
-export default NotificationComponenet;
+export default NotificationComponent;
 
 type NotificationProps = {
   passedClass: string;

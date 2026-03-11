@@ -3,11 +3,11 @@
 
 @font-face {
     font-family: "laquer";
-    src: url("./assests/fonts/Lacquer.ttf");
+    src: url("./assets/fonts/Lacquer.ttf");
 }
 @font-face {
     font-family: "permanent-marker";
-    src: url("./assests/fonts/permanent-marker.ttf");
+    src: url("./assets/fonts/permanent-marker.ttf");
 }
 /*:root {
     --bg-dark: var(--color-neutral-900);

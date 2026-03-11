@@ -46,12 +46,12 @@ export function setCanvasState(
   });
   redraw();
 }
-export function recieveUndo(canvas: Canvas, redraw: () => void) {
+export function receiveUndo(canvas: Canvas, redraw: () => void) {
   if (canvas.strokes.length == 0) return;
   canvas.strokes.pop();
   redraw();
 }
-export function recieveCanvasInput(
+export function receiveCanvasInput(
   payload: ArrayBuffer,
   canvas: Canvas,
   ctx: CanvasRenderingContext2D | null,
@@ -86,7 +86,7 @@ export function recieveCanvasInput(
       break;
   }
 }
-export function recieveNotification(
+export function receiveNotification(
   payload: ArrayBuffer,
   notificationQueueSetter: Setter<Notification[]>,
 ) {
@@ -95,7 +95,7 @@ export function recieveNotification(
   ) as Notification;
   notificationQueueSetter((oldNoti) => [...oldNoti, notification]);
 }
-export function recieveColor(
+export function receiveColor(
   color: string,
   canvas: Canvas,
   changeCurrentColor: Setter<string>,
@@ -104,7 +104,7 @@ export function recieveColor(
   canvas.currentColor = color;
 }
 
-export function recieveStrokeWidth(
+export function receiveStrokeWidth(
   width: number,
   canvas: Canvas,
   changeCurrentWidth: Setter<number>,
@@ -112,7 +112,7 @@ export function recieveStrokeWidth(
   canvas.currentWidth = width;
   changeCurrentWidth(width);
 }
-export function recieveWords(
+export function receiveWords(
   payload: ArrayBuffer,
   setWordOptions: Setter<string[]>,
 ) {
@@ -121,7 +121,7 @@ export function recieveWords(
   setWordOptions(words);
 }
 
-export function recieveScoreBoard(
+export function receiveScoreBoard(
   payload: ArrayBuffer,
   scoreBoard: Setter<Score[]>,
   showBoard: Setter<boolean>,
@@ -142,7 +142,7 @@ export function recieveScoreBoard(
   }, 2500);
 }
 
-export function recieveRoundTime(
+export function receiveRoundTime(
   payload: ArrayBuffer,
   setRoundTime: Setter<number>,
 ) {
@@ -153,24 +153,14 @@ export function recieveRoundTime(
 export function startRound(
   roundTime: Accessor<number>,
   setRoundTime: Setter<number>,
-) {
-  // const interval = setInterval(() => {
-  //   setRoundTime((time) => {
-  //     if (time <= 0) return 0;
-  //     return time - 1;
-  //   });
-  // }, 1000);
-  // setTimeout(() => {
-  //   clearInterval(interval);
-  // }, roundTime() * 1000);
-}
-export function recieveGuessWord(
+) {}
+export function receiveGuessWord(
   payload: ArrayBuffer,
   setSelectedWord: Setter<string>,
 ) {
   setSelectedWord(decoder.decode(payload.slice(1)));
 }
-export function recieveNumberOfRounds(
+export function receiveNumberOfRounds(
   payload: ArrayBuffer,
   setNumRounds: Setter<number>,
 ) {

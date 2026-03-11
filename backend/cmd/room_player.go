@@ -275,7 +275,7 @@ func (r *Room) HandleUserMessage(p []byte, player *Player) {
 		}
 		player.Points = player.Points + r.PlayerPoints
 		r.PlayerPoints = max(int(math.Round(float64(r.PlayerPoints)*0.8)), 1)
-		r.PlayerGussed <- struct{}{}
+		r.PlayerGuessed <- struct{}{}
 		player.hasGuessed = true
 		r.mu.Unlock()
 	}

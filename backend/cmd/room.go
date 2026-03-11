@@ -53,7 +53,7 @@ type Room struct {
 	wordSelectedChan chan uint8
 	RoundTime        uint8
 	AllPlayerGussed  chan struct{}
-	PlayerGussed     chan struct{}
+	PlayerGuessed    chan struct{}
 	PlayerPoints     int
 	TokenToPlayerMap map[string]*Player
 	ScoreCard        map[string]ScoreInfo
@@ -78,7 +78,7 @@ func CreateRoom(words []string) *Room {
 		wordSelectedChan: make(chan uint8),
 		AllPlayerGussed:  make(chan struct{}),
 		TokenToPlayerMap: make(map[string]*Player, 10),
-		PlayerGussed:     make(chan struct{}),
+		PlayerGuessed:    make(chan struct{}),
 		PlayerPoints:     10,
 		RoundTime:        60,
 		CurrentRoundTime: 60,

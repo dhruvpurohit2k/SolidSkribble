@@ -37,7 +37,7 @@ function ChatBox(props: ChatBoxProps) {
               >
                 <>
                   <p class="">{msg.senderName}</p>
-                  <p class="">GUSSED!!!!</p>
+                  <p class="">GUESSED!!!!</p>
                 </>
               </Show>
             </div>
